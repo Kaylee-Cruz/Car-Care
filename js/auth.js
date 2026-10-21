@@ -315,6 +315,8 @@
 
     form.addEventListener("submit", function (event) {
       event.preventDefault();
+      showMessage("register-message", "", false);
+      document.getElementById("already-registered-link").classList.add("hidden");
       const values = new FormData(form);
       const role = roleSelect.value;
       if (!["owner", "center"].includes(role)) {
@@ -394,6 +396,7 @@
 
     document.getElementById("first-vehicle-form").addEventListener("submit", function (event) {
       event.preventDefault();
+      showMessage("vehicle-message", "", false);
       if (!newlyRegisteredUser || newlyRegisteredUser.role !== "owner") return;
       const vehicleForm = event.currentTarget;
       if (!vehicleForm.elements.vehicleNumber.value.trim() ||

@@ -642,6 +642,7 @@
 
     form.addEventListener("submit", function (event) {
       event.preventDefault();
+      document.getElementById("service-request-message").textContent = "";
       const vehicle = ownedVehicles.find((item) => item.id === form.elements.vehicleId.value);
       if (!vehicle) {
         document.getElementById("service-request-message").textContent = "Choose one of your approved vehicles.";
@@ -894,6 +895,7 @@
       item.id === requestId && item.ownerId === session.id && item.status === "paid"
     );
     const message = form.querySelector("[data-report-message]");
+    message.textContent = "";
     if (!request) throw new Error("Feedback can be submitted only for a paid service.");
     if (window.CarCareData.get("reports").some((report) => report.serviceRequestId === request.id && report.ownerId === session.id)) {
       throw new Error("Feedback has already been submitted for this service.");

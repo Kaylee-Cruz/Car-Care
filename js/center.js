@@ -608,6 +608,7 @@
         .sort((left, right) => new Date(right.date) - new Date(left.date));
       return "<section class=\"center-panel center-vehicle-result\"><div class=\"center-panel-heading\"><div><p class=\"eyebrow\">CUSTOMER VEHICLE</p><h2>" + escape(vehicleLabel(vehicle)) + "</h2><p>" + escape(vehicle.vehicleNumber) + "</p></div></div>" +
         "<div class=\"center-customer-detail\"><div><small>CUSTOMER</small>" + customerMarkup(owner) + "</div><div><small>VEHICLE</small><strong>" + escape(vehicleLabel(vehicle)) + "</strong><span>" + escape(vehicle.vehicleNumber) + "</span></div></div>" +
+        (!vehicle.assignedCenterId ? "<p class=\"center-inline-note\">Saving these initial part records will assign this customer vehicle to your service center.</p>" : "") +
         "<form class=\"center-parts-form\" data-parts-form=\"" + escape(vehicle.id) + "\"><div class=\"center-subheading\"><div><h3>Parts and expiry dates</h3><p>Update installed and expiry dates, or add a part record.</p></div><button type=\"button\" class=\"button button-outline button-small\" data-add-vehicle-part>Add part</button></div><div class=\"center-part-edit-list\">" +
         parts.map((part) => partEditRow(part)).join("") +
         "</div><div class=\"form-message\" data-parts-message role=\"status\"></div><button class=\"button button-primary button-small\" type=\"submit\">Save part records</button></form>" +
@@ -794,8 +795,16 @@
 
     function searchVehicles(query) {
       const value = query.trim().toLowerCase();
-      const results = centerVehicles().filter((vehicle) => vehicle.vehicleNumber.toLowerCase().includes(value));
       const target = document.getElementById("vehicle-search-results");
+      if (!value) {
+        target.innerHTML = "<div class=\"center-panel\"><div class=\"center-empty-state\">Enter a vehicle number to search customer vehicles.</div></div>";
+        return;
+      }
+      const visibleIds = new Set(centerVehicles().map((vehicle) => vehicle.id));
+      const results = getData("vehicles").filter((vehicle) =>
+        vehicle.vehicleNumber.toLowerCase().includes(value) &&
+        (visibleIds.has(vehicle.id) || !vehicle.assignedCenterId)
+      );
       target.innerHTML = results.length
         ? results.map(renderVehicleInfo).join("")
         : "<div class=\"center-panel\"><div class=\"center-empty-state\">No customer vehicles found for that vehicle number.</div></div>";
@@ -953,6 +962,8 @@
           const current = getData("parts");
           const rows = Array.from(partForm.querySelectorAll("[data-part-row]"));
           const updatedParts = current.filter((part) => part.vehicleId !== vehicleId);
+          const vehicle = getData("vehicles").find((item) => item.id === vehicleId);
+          if (!vehicle) throw new Error("The customer vehicle could not be found.");
           for (const row of rows) {
             const partName = row.querySelector("[name=partName]").value.trim();
             const installDate = row.querySelector("[name=installDate]").value;
@@ -961,6 +972,11 @@
             updatedParts.push({ id: row.querySelector("[name=partId]").value || "part-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6), vehicleId, partName, installDate, expiryDate });
           }
           saveData("parts", updatedParts);
+          if (!vehicle.assignedCenterId) {
+            saveData("vehicles", getData("vehicles").map((item) =>
+              item.id === vehicleId ? Object.assign({}, item, { assignedCenterId: centerId }) : item
+            ));
+          }
           window.CarCareUI.toast("Vehicle part records updated.", "success");
           searchVehicles(document.getElementById("vehicle-search-input").value);
           renderDashboard();
