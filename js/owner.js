@@ -484,10 +484,23 @@
       const canCancel = request.initiatedBy !== "center" && ["requested", "accepted-by-owner"].includes(request.status);
       const estimateItems = Array.isArray(request.estimateItems) ? request.estimateItems : [];
       const canConfirmEstimate = ["estimate-ready", "estimate-sent"].includes(request.status) && estimateItems.length > 0;
+      const isCompleted = ["completed", "service-completed"].includes(request.status);
+      const isPaid = request.status === "paid";
+      const requestPayments = window.CarCareData.get("payments").filter((payment) => payment.serviceRequestId === request.id && payment.paymentSuccessful);
+      const reports = window.CarCareData.get("reports").filter((report) => report.serviceRequestId === request.id && report.ownerId === session.id);
       const estimateMarkup = canConfirmEstimate
         ? "<form class=\"owner-estimate-confirmation\" data-estimate-confirm=\"" + escape(request.id) + "\"><h3>Service estimate</h3><p>Select the parts you approve for service. The total updates with your selection.</p><div class=\"owner-estimate-options\">" +
           estimateItems.map((item) => "<label class=\"owner-estimate-option\"><input type=\"checkbox\" name=\"approvedEstimateItem\" value=\"" + escape(item.id) + "\"><span><strong>" + escape(item.partName) + "</strong><small>Part $" + Number(item.partCost || 0).toFixed(2) + " · Labor $" + Number(item.laborCost || 0).toFixed(2) + "</small></span><b>$" + (Number(item.partCost || 0) + Number(item.laborCost || 0)).toFixed(2) + "</b></label>").join("") +
-          "</div><p class=\"owner-estimate-total\">Selected estimate total <strong data-owner-estimate-total>$0.00</strong></p><div class=\"form-message\" data-estimate-message role=\"status\"></div><button class=\"button button-primary button-small\" type=\"submit\">Confirm selected parts</button></form>"
+          "</div><p class=\"owner-estimate-total\">Selected estimate total <strong data-owner-estimate-total>$0.00</strong></p><div class=\"form-message\" data-estimate-message role=\"status\"></div><div class=\"owner-form-actions\"><button class=\"button button-primary button-small\" type=\"submit\">Confirm Service</button><button class=\"button button-outline button-small\" type=\"button\" data-cancel-service=\"" + escape(request.id) + "\">Cancel Service</button></div></form>"
+        : "";
+      const paymentMarkup = isCompleted
+        ? paymentFormMarkup(request)
+        : "";
+      const receiptMarkup = isPaid && requestPayments.length
+        ? receiptMarkupFor(request, requestPayments[requestPayments.length - 1])
+        : "";
+      const reportMarkup = isPaid
+        ? (reports.length ? reportReceiptMarkup(reports[0]) : reportFormMarkup(request))
         : "";
       const pickupInfo = request.pickupDate && request.pickupTime
         ? "<p class=\"request-pickup-info\"><strong>Pickup:</strong> " + window.CarCareUI.formatDate(request.pickupDate) + " at " + escape(formatPickupTime(request.pickupTime)) + (request.pickupAddress ? " · " + escape(request.pickupAddress) : "") + "</p>"
@@ -499,6 +512,7 @@
         (requestedParts.length ? "<p class=\"request-parts-summary\"><strong>Requested checks:</strong> " + escape(requestedParts.join(", ")) + "</p>" : "") +
         (request.issue ? "<p class=\"request-parts-summary\"><strong>Notes:</strong> " + escape(request.issue) + "</p>" : "") + pickupInfo +
         estimateMarkup +
+        paymentMarkup + receiptMarkup + reportMarkup +
         requestProgressMarkup(request) +
         (isIncoming ? "<div class=\"incoming-request-actions\"><button class=\"button button-primary button-small\" type=\"button\" data-accept-request=\"" + escape(request.id) + "\">Accept and choose pickup</button><button class=\"button button-outline button-small\" type=\"button\" data-decline-request=\"" + escape(request.id) + "\">Decline</button></div>" : "") +
         (canCancel ? "<div class=\"request-cancel-action\"><button class=\"link-button\" type=\"button\" data-cancel-request=\"" + escape(request.id) + "\">Cancel request</button></div>" : "") +
@@ -506,6 +520,58 @@
         "</article>";
     }).join("");
     target.innerHTML = html;
+  }
+
+  function selectedEstimateItems(request, allWhenUnselected) {
+    const items = Array.isArray(request.estimateItems) ? request.estimateItems : [];
+    if (!Array.isArray(request.selectedPartsForService)) return items;
+    const selected = new Set(request.selectedPartsForService);
+    const filtered = items.filter((item) => selected.has(item.id));
+    return filtered.length || !allWhenUnselected ? filtered : items;
+  }
+
+  function paymentAmount(request, items) {
+    if (Number.isFinite(Number(request.serviceCost))) return Number(request.serviceCost);
+    return items.reduce((total, item) => total + Number(item.partCost || 0) + Number(item.laborCost || 0), 0);
+  }
+
+  function paymentInvoiceMarkup(request, items) {
+    const lines = items.map((item) =>
+      "<tr><td>" + escape(item.partName) + "</td><td>$" + Number(item.partCost || 0).toFixed(2) + "</td><td>$" + Number(item.laborCost || 0).toFixed(2) + "</td><td>$" + (Number(item.partCost || 0) + Number(item.laborCost || 0)).toFixed(2) + "</td></tr>"
+    ).join("");
+    return "<div class=\"owner-invoice\"><div class=\"owner-invoice-heading\"><div><small>INVOICE</small><strong>" + escape(request.orderNumber || request.id) + "</strong></div><span>Service completed</span></div><div class=\"owner-table-wrap\"><table class=\"owner-table\"><thead><tr><th>Damaged part</th><th>Part cost</th><th>Labor</th><th>Total</th></tr></thead><tbody>" +
+      (lines || "<tr><td colspan=\"4\">Service total</td></tr>") +
+      "</tbody></table></div><p class=\"owner-invoice-total\">Amount due <strong>$" + paymentAmount(request, items).toFixed(2) + "</strong></p></div>";
+  }
+
+  function paymentFormMarkup(request) {
+    const items = selectedEstimateItems(request, true);
+    const amount = paymentAmount(request, items);
+    return "<section class=\"owner-payment-panel\" data-payment-panel=\"" + escape(request.id) + "\"><div class=\"owner-payment-heading\"><div><p class=\"eyebrow\">ONLINE PAYMENT</p><h3>Complete payment</h3></div><span class=\"simulated-payment-label\">Simulated payment - no real money is charged.</span></div>" +
+      paymentInvoiceMarkup(request, items) +
+      "<form data-payment-form=\"" + escape(request.id) + "\" data-payment-amount=\"" + amount.toFixed(2) + "\" novalidate>" +
+      "<div class=\"payment-method-tabs\" role=\"tablist\" aria-label=\"Payment method\"><button type=\"button\" class=\"active\" data-payment-method-tab=\"banking\" aria-selected=\"true\">Net Banking</button><button type=\"button\" data-payment-method-tab=\"upi\" aria-selected=\"false\">UPI</button><button type=\"button\" data-payment-method-tab=\"card\" aria-selected=\"false\">Card</button></div>" +
+      "<input type=\"hidden\" name=\"paymentMethod\" value=\"banking\">" +
+      "<div class=\"payment-method-panel\" data-payment-method-panel=\"banking\"><label>Choose your bank<select name=\"bank\"><option value=\"\">Select a bank</option><option>Demo National Bank</option><option>Community Credit Union</option><option>Metro Bank</option><option>First City Bank</option></select></label><label>Simulated user ID<input name=\"bankUserId\" autocomplete=\"off\" placeholder=\"e.g. demo.user\"></label></div>" +
+      "<div class=\"payment-method-panel hidden\" data-payment-method-panel=\"upi\"><label>UPI ID<input name=\"upiId\" autocomplete=\"off\" placeholder=\"name@bank\"></label><small>Enter an ID in the format name@bank.</small></div>" +
+      "<div class=\"payment-method-panel hidden\" data-payment-method-panel=\"card\"><label>Name on card<input name=\"cardName\" autocomplete=\"cc-name\" placeholder=\"Demo cardholder\"></label><label>Simulated card number<input name=\"cardNumber\" inputmode=\"numeric\" autocomplete=\"off\" placeholder=\"4242 4242 4242 4242\"></label><small>Demo card details only. Do not enter real payment information.</small></div>" +
+      "<label class=\"payment-failure-option\"><input type=\"checkbox\" name=\"simulateFailure\"><span>Simulate a failed payment</span></label>" +
+      "<div class=\"form-message\" data-payment-message role=\"status\" aria-live=\"polite\"></div><button class=\"button button-primary\" type=\"submit\">Pay Now · $" + amount.toFixed(2) + "</button></form></section>";
+  }
+
+  function receiptMarkupFor(request, payment) {
+    return "<section class=\"owner-payment-receipt\"><p class=\"eyebrow\">PAYMENT RECEIPT</p><h3>Payment successful</h3><dl><div><dt>Order number</dt><dd>" + escape(request.orderNumber || request.id) + "</dd></div><div><dt>Transaction ID</dt><dd>" + escape(payment.transactionId) + "</dd></div><div><dt>Amount paid</dt><dd>$" + Number(payment.amount).toFixed(2) + "</dd></div><div><dt>Payment method</dt><dd>" + escape(payment.methodLabel || payment.method || "Online payment") + "</dd></div><div><dt>Date</dt><dd>" + window.CarCareUI.formatDate(String(payment.date || "").slice(0, 10)) + "</dd></div></dl><p>This is a simulated receipt; no real money was charged.</p></section>";
+  }
+
+  function reportFormMarkup(request) {
+    return "<form class=\"owner-report-form\" data-report-form=\"" + escape(request.id) + "\"><div><p class=\"eyebrow\">HELP US IMPROVE</p><h3>Report / Feedback</h3><p>Share feedback about this completed service with the Car Care admin team.</p></div><label>Type<select name=\"reportType\" required><option value=\"\">Choose one</option><option value=\"complaint\">Complaint</option><option value=\"positive-feedback\">Positive Feedback</option></select></label><fieldset class=\"owner-rating-fieldset\"><legend>Rating</legend><div class=\"owner-rating-options\">" +
+      [1, 2, 3, 4, 5].map((rating) => "<label><input type=\"radio\" name=\"rating\" value=\"" + rating + "\" required><span>" + rating + " ★</span></label>").join("") +
+      "</div></fieldset><label>Message<textarea name=\"message\" rows=\"4\" maxlength=\"1000\" placeholder=\"Tell us about your service experience\" required></textarea></label><div class=\"form-message\" data-report-message role=\"status\"></div><button class=\"button button-primary button-small\" type=\"submit\">Send to Admin</button></form>";
+  }
+
+  function reportReceiptMarkup(report) {
+    const label = report.type === "complaint" ? "Complaint" : "Positive Feedback";
+    return "<section class=\"owner-report-receipt\"><p class=\"eyebrow\">REPORT SUBMITTED</p><h3>" + label + " · " + Number(report.rating) + " ★</h3><p>" + escape(report.message) + "</p><small>Reference: " + escape(report.id) + " · Sent to the Admin team</small></section>";
   }
 
   function localDateString() {
@@ -686,6 +752,188 @@
     }
   }
 
+  function addOwnerEventNotification(key, type, message, relatedId) {
+    const notifications = window.CarCareData.get("notifications");
+    if (notifications.some((item) => item.notificationKey === key)) return;
+    notifications.push({
+      id: "notification-" + key,
+      notificationKey: key,
+      recipientId: session.id,
+      type,
+      message,
+      relatedId,
+      createdAt: new Date().toISOString(),
+      read: false,
+      simulated: true
+    });
+    window.CarCareData.save("notifications", notifications);
+  }
+
+  function handlePaymentMethodClick(event) {
+    const tab = event.target.closest("[data-payment-method-tab]");
+    if (!tab) return false;
+    const tabs = tab.closest(".payment-method-tabs");
+    const panel = tabs.closest("[data-payment-panel]");
+    const form = panel.querySelector("[data-payment-form]");
+    const method = tab.dataset.paymentMethodTab;
+    form.elements.paymentMethod.value = method;
+    tabs.querySelectorAll("[data-payment-method-tab]").forEach((button) => {
+      const active = button === tab;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-selected", String(active));
+    });
+    panel.querySelectorAll("[data-payment-method-panel]").forEach((section) => {
+      section.classList.toggle("hidden", section.dataset.paymentMethodPanel !== method);
+    });
+    form.querySelector("[data-payment-message]").textContent = "";
+    return true;
+  }
+
+  function processPayment(form) {
+    const requestId = form.dataset.paymentForm;
+    const request = window.CarCareData.get("serviceRequests").find((item) =>
+      item.id === requestId && item.ownerId === session.id && ["completed", "service-completed"].includes(item.status)
+    );
+    if (!request) throw new Error("This request is not eligible for payment.");
+    const message = form.querySelector("[data-payment-message]");
+    const amount = Number(form.dataset.paymentAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      message.textContent = "The invoice total must be greater than zero before payment.";
+      return;
+    }
+    const method = form.elements.paymentMethod.value;
+    let methodLabel = "";
+    if (method === "banking") {
+      if (!form.elements.bank.value || !form.elements.bankUserId.value.trim()) {
+        message.textContent = "Choose a bank and enter a simulated user ID.";
+        return;
+      }
+      methodLabel = "Net Banking · " + form.elements.bank.value;
+    } else if (method === "upi") {
+      const upiId = form.elements.upiId.value.trim();
+      if (!/^[A-Za-z0-9][A-Za-z0-9._-]*@[A-Za-z][A-Za-z0-9.-]*$/.test(upiId)) {
+        message.textContent = "Enter a valid UPI ID in the format name@bank.";
+        return;
+      }
+      methodLabel = "UPI · " + upiId;
+    } else if (method === "card") {
+      const digits = form.elements.cardNumber.value.replace(/\D/g, "");
+      if (!form.elements.cardName.value.trim() || digits.length < 12 || digits.length > 19) {
+        message.textContent = "Enter a simulated cardholder name and a card number containing 12–19 digits.";
+        return;
+      }
+      methodLabel = "Card";
+    } else {
+      message.textContent = "Choose a payment method.";
+      return;
+    }
+    const submitButton = form.querySelector("button[type=submit]");
+    const originalText = submitButton.textContent;
+    submitButton.disabled = true;
+    submitButton.classList.add("payment-processing");
+    submitButton.textContent = "Processing simulated payment…";
+    message.textContent = "";
+    window.setTimeout(() => {
+      try {
+        if (form.elements.simulateFailure.checked) {
+          message.textContent = "Payment failed in the simulated payment provider. No payment was recorded. Please try again.";
+          window.CarCareUI.toast("Simulated payment failed. The invoice is still due.", "error");
+          return;
+        }
+        const transactionId = "TXN-DEMO-" + Date.now().toString(36).toUpperCase();
+        const payment = {
+          id: "payment-" + Date.now(),
+          providerId: "demo-psp",
+          transactionId,
+          amount: Number(amount.toFixed(2)),
+          paymentSuccessful: true,
+          method,
+          methodLabel,
+          serviceRequestId: request.id,
+          serviceHistoryId: request.serviceHistoryId || null,
+          ownerId: session.id,
+          date: new Date().toISOString()
+        };
+        window.CarCareData.save("payments", window.CarCareData.get("payments").concat(payment));
+        const updatedRequest = updateRequest(request.id, {
+          status: "paid",
+          paymentId: payment.id,
+          paymentStatus: "paid",
+          paidAt: new Date().toISOString()
+        });
+        if (updatedRequest.serviceHistoryId) {
+          const history = window.CarCareData.get("serviceHistory").map((entry) =>
+            entry.id === updatedRequest.serviceHistoryId
+              ? Object.assign({}, entry, { paymentStatus: "Paid", paymentId: payment.id })
+              : entry
+          );
+          window.CarCareData.save("serviceHistory", history);
+        }
+        addOwnerEventNotification("payment-receipt-" + payment.id, "payment-receipt", "Payment receipt: $" + payment.amount.toFixed(2) + " for order " + (request.orderNumber || request.id) + " via " + method + ".", payment.id);
+        renderServiceRequests();
+        refreshNotificationViews();
+        document.getElementById("owner-request-count").textContent = String(activeOwnerRequests().length);
+        window.CarCareUI.toast("Payment successful. Your receipt is ready.", "success");
+      } catch (error) {
+        console.error("Unable to complete simulated payment.", error);
+        message.textContent = "Payment could not be recorded: " + error.message;
+        window.CarCareUI.toast("Payment could not be recorded.", "error");
+      } finally {
+        if (form.isConnected) {
+          submitButton.disabled = false;
+          submitButton.classList.remove("payment-processing");
+          submitButton.textContent = originalText;
+        }
+      }
+    }, 850);
+  }
+
+  function submitReport(form) {
+    const requestId = form.dataset.reportForm;
+    const request = window.CarCareData.get("serviceRequests").find((item) =>
+      item.id === requestId && item.ownerId === session.id && item.status === "paid"
+    );
+    const message = form.querySelector("[data-report-message]");
+    if (!request) throw new Error("Feedback can be submitted only for a paid service.");
+    if (window.CarCareData.get("reports").some((report) => report.serviceRequestId === request.id && report.ownerId === session.id)) {
+      throw new Error("Feedback has already been submitted for this service.");
+    }
+    const type = form.elements.reportType.value;
+    const rating = Number(form.elements.rating.value);
+    const body = form.elements.message.value.trim();
+    if (!["complaint", "positive-feedback"].includes(type)) {
+      message.textContent = "Choose Complaint or Positive Feedback.";
+      return;
+    }
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      message.textContent = "Choose a rating from 1 to 5 stars.";
+      return;
+    }
+    if (!body) {
+      message.textContent = "Write a message before submitting your report.";
+      return;
+    }
+    const report = {
+      id: "report-" + Date.now(),
+      ownerId: session.id,
+      serviceRequestId: request.id,
+      serviceHistoryId: request.serviceHistoryId || null,
+      serviceCenterId: request.serviceCenterId,
+      orderNumber: request.orderNumber || request.id,
+      type,
+      rating,
+      message: body,
+      createdAt: new Date().toISOString()
+    };
+    try {
+      window.CarCareData.save("reports", window.CarCareData.get("reports").concat(report));
+      renderServiceRequests();
+      window.CarCareUI.toast("Report submitted to the Admin team.", "success");
+    } catch (error) {
+      message.textContent = "Report could not be saved: " + error.message;
+    }
+  }
+
   function initRequestActions() {
     const requestList = document.getElementById("owner-request-list");
     requestList.addEventListener("change", function (event) {
@@ -700,6 +948,12 @@
       form.querySelector("[data-owner-estimate-total]").textContent = "$" + total.toFixed(2);
     });
     requestList.addEventListener("click", function (event) {
+      if (handlePaymentMethodClick(event)) return;
+      const cancelServiceButton = event.target.closest("[data-cancel-service]");
+      if (cancelServiceButton) {
+        cancelOwnerRequest(cancelServiceButton.dataset.cancelService);
+        return;
+      }
       const acceptButton = event.target.closest("[data-accept-request]");
       if (acceptButton) {
         const form = this.querySelector("[data-accept-form=\"" + CSS.escape(acceptButton.dataset.acceptRequest) + "\"]");
@@ -720,6 +974,22 @@
       if (cancelButton) cancelOwnerRequest(cancelButton.dataset.cancelRequest);
     });
     document.getElementById("owner-request-list").addEventListener("submit", function (event) {
+      const paymentForm = event.target.closest("[data-payment-form]");
+      if (paymentForm) {
+        event.preventDefault();
+        processPayment(paymentForm);
+        return;
+      }
+      const reportForm = event.target.closest("[data-report-form]");
+      if (reportForm) {
+        event.preventDefault();
+        try {
+          submitReport(reportForm);
+        } catch (error) {
+          reportForm.querySelector("[data-report-message]").textContent = error.message;
+        }
+        return;
+      }
       const estimateForm = event.target.closest("[data-estimate-confirm]");
       if (estimateForm) {
         event.preventDefault();

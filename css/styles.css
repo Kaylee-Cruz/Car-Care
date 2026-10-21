@@ -175,3 +175,77 @@ form label{display:block;font-size:11px;font-weight:700;margin:15px 0 7px}input,
 .owner-estimate-confirmation .button{min-height:34px}
 @media(max-width:850px){.center-header{padding:0 20px}.center-main{padding-top:28px}.center-summary-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.center-followup-main{grid-template-columns:1fr}}
 @media(max-width:600px){.center-heading{align-items:flex-start}.center-heading h1,.center-section-heading h2{font-size:24px}.center-tabs button{padding:9px 10px;font-size:10px}.center-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.center-followup-card{align-items:flex-start;flex-direction:column}.center-followup-actions{width:100%}.center-followup-actions .button{width:100%}.center-detail-heading{flex-direction:column}.center-detail-tools{width:100%;justify-content:space-between}.center-customer-detail{grid-template-columns:1fr;gap:12px}.center-search{align-items:stretch;flex-direction:column}.center-part-edit-row,.center-estimate-line{grid-template-columns:1fr}.center-part-edit-row .table-status,.center-estimate-line .link-button{margin:0}.center-subheading{align-items:flex-start;flex-direction:column}.center-subheading>.button{width:100%}.center-completion-part{grid-template-columns:1fr}.center-header .header-actions{gap:8px}.center-header .user-greeting{max-width:105px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+
+.owner-payment-panel,.owner-payment-receipt,.owner-report-form,.owner-report-receipt{margin:15px 0;padding:16px;border:1px solid #e5ece7;border-radius:9px;background:#fbfdfb}
+.owner-payment-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.owner-payment-heading .eyebrow,.owner-payment-receipt .eyebrow,.owner-report-form .eyebrow,.owner-report-receipt .eyebrow{margin:0 0 5px}
+.owner-payment-heading h3,.owner-payment-receipt h3,.owner-report-form h3,.owner-report-receipt h3{margin:0;font-size:14px}
+.simulated-payment-label{padding:6px 8px;border-radius:6px;background:#edf5ef;color:#32704d;font-size:9px;font-weight:700;line-height:1.4}
+.owner-invoice{margin:12px 0;padding:12px;border:1px solid #e7ece8;border-radius:7px;background:#fff}
+.owner-invoice-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:9px}
+.owner-invoice-heading small,.owner-invoice-heading strong{display:block}
+.owner-invoice-heading small{margin-bottom:4px;color:#929c96;font-size:8px;letter-spacing:.7px}
+.owner-invoice-heading strong{font-size:11px}
+.owner-invoice-heading>span{color:#617068;font-size:9px}
+.owner-invoice .owner-table th,.owner-invoice .owner-table td{padding:9px 8px;font-size:9px}
+.owner-invoice-total{display:flex;justify-content:space-between;margin:10px 0 0;padding-top:10px;border-top:1px solid #edf0ee;color:#66736b;font-size:10px}
+.owner-invoice-total strong{font-size:13px;color:#1c2a24}
+[data-payment-form] label,[data-report-form] label{display:block;margin:12px 0 6px;color:#34443b;font-size:10px;font-weight:700}
+[data-payment-form] input,[data-payment-form] select,[data-report-form] select,[data-report-form] textarea{font-size:11px}
+[data-payment-form] small{display:block;margin-top:6px;color:#87918b;font-size:9px;line-height:1.5}
+.payment-method-tabs{display:flex;gap:5px;overflow:auto;margin:12px 0;padding:4px;border:1px solid #e7ece8;border-radius:8px;background:#fff}
+.payment-method-tabs button{flex:1;min-width:95px;border:0;border-radius:6px;background:transparent;padding:9px 10px;color:#68756e;font-size:10px;font-weight:700;cursor:pointer}
+.payment-method-tabs button.active{background:#edf6f0;color:#147b59}
+.payment-method-panel{padding:0 2px}
+.payment-method-panel.hidden{display:none!important}
+.payment-failure-option{display:flex!important;align-items:center;gap:8px;margin:14px 0!important;cursor:pointer}
+.payment-failure-option input{width:15px;height:15px;margin:0;accent-color:var(--green)}
+.payment-processing{position:relative;overflow:hidden}
+.payment-processing:after{position:absolute;inset:0;content:"";background:linear-gradient(110deg,transparent 20%,#ffffff55 50%,transparent 80%);transform:translateX(-100%);animation:payment-shimmer .85s linear infinite}
+@keyframes payment-shimmer{to{transform:translateX(100%)}}
+.owner-payment-receipt{border-color:#c9e3d1;background:#f1faf3}
+.owner-payment-receipt h3{color:#147b59}
+.owner-payment-receipt dl{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+.owner-payment-receipt dl div{padding:9px;border-radius:6px;background:#fff}
+.owner-payment-receipt dt{color:#839087;font-size:8px;text-transform:uppercase;letter-spacing:.5px}
+.owner-payment-receipt dd{margin:4px 0 0;font-size:10px;font-weight:700;overflow-wrap:anywhere}
+.owner-payment-receipt>p:last-child{margin:0;color:#7b8780;font-size:9px}
+.owner-report-form>div:first-child p:last-child{margin:6px 0 0;color:#7c8780;font-size:10px}
+.owner-report-form textarea{display:block;width:100%;resize:vertical;padding:10px 12px;border:1px solid #dfe6e1;border-radius:7px;font:inherit;color:var(--ink)}
+.owner-rating-fieldset{margin:12px 0;padding:9px 10px 11px}
+.owner-rating-options{display:flex;gap:7px}
+.owner-rating-options label{margin:0!important}
+.owner-rating-options input{position:absolute;opacity:0;pointer-events:none}
+.owner-rating-options span{display:block;padding:7px 9px;border:1px solid #e2e9e4;border-radius:6px;color:#6e7d74;font-size:9px;cursor:pointer}
+.owner-rating-options input:checked+span{border-color:#d5b650;background:#fff9e8;color:#9b7610}
+.owner-report-receipt h3{margin-bottom:7px}
+.owner-report-receipt>p:not(.eyebrow){margin:0 0 8px;color:#59675f;font-size:10px;line-height:1.6;white-space:pre-wrap}
+.owner-report-receipt>small{color:#89938d;font-size:9px}
+.admin-main{width:min(1200px,100%);margin:0 auto;padding:40px clamp(20px,4vw,52px) 60px}
+.admin-page-heading{margin-bottom:22px}
+.admin-page-heading .eyebrow{margin-bottom:8px}
+.admin-page-heading h1{margin:0 0 6px;font-size:30px}
+.admin-page-heading>div>p:last-child{margin:0;color:#7f8983;font-size:12px}
+.admin-summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.admin-summary-card,.admin-panel{border:1px solid #e7ece8;border-radius:9px;background:#fff}
+.admin-summary-card{padding:15px}
+.admin-summary-card span,.admin-summary-card strong{display:block}
+.admin-summary-card span{margin-bottom:8px;color:#89938d;font-size:10px}
+.admin-summary-card strong{font-size:22px}
+.admin-panel{margin:15px 0;overflow:hidden}
+.admin-panel-heading{display:flex;align-items:center;justify-content:space-between;padding:17px 19px;border-bottom:1px solid #edf0ee}
+.admin-panel-heading .eyebrow{margin:0 0 6px}
+.admin-panel-heading h2{margin:0 0 4px;font-size:15px}
+.admin-panel-heading p{margin:0;color:#89938d;font-size:10px}
+.admin-report-list{padding:0 18px}
+.admin-report-card{padding:16px 0;border-bottom:1px solid #edf0ee}
+.admin-report-card:last-child{border-bottom:0}
+.admin-report-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.admin-report-heading .eyebrow{margin:0 0 4px}
+.admin-report-heading h3{margin:0;font-size:12px}
+.admin-report-rating{color:#b08c16;font-size:14px;white-space:nowrap}
+.admin-report-rating small{color:#77837b;font-size:9px}
+.admin-report-message{margin:10px 0;color:#4d5d53;font-size:11px;line-height:1.6;white-space:pre-wrap}
+.admin-report-meta{display:flex;flex-wrap:wrap;gap:7px 15px;color:#89938d;font-size:9px}
+.admin-portal .model-chips{padding:16px 19px}
+@media(max-width:600px){.owner-payment-heading{flex-direction:column}.owner-payment-receipt dl{grid-template-columns:1fr}.owner-rating-options{flex-wrap:wrap}.admin-summary-grid{grid-template-columns:1fr 1fr}.admin-page-heading h1{font-size:24px}}
