@@ -293,3 +293,23 @@ form label{display:block;font-size:11px;font-weight:700;margin:15px 0 7px}input,
 .admin-report-action .admin-form-message{margin-bottom:0}
 @media(max-width:850px){.admin-dashboard-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.admin-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.admin-dashboard-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-form-grid{grid-template-columns:1fr}.admin-center-field{grid-column:auto}.admin-form-actions{align-items:stretch;flex-direction:column}.admin-catalog-forms{grid-template-columns:1fr;padding:12px}.admin-catalog-caption{align-items:flex-start;flex-wrap:wrap}.admin-catalog-caption span{width:100%;margin-left:0}.admin-report-action>div{flex-direction:column;align-items:stretch}.admin-main{padding:28px 14px 42px}.admin-panel-heading{padding:15px}.admin-report-list{padding:0 14px}}
+.site-footer{gap:18px;flex-wrap:wrap}
+.site-footer-links{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.site-footer-links a{color:#68766e;font-size:10px;font-weight:700}
+.site-footer-links a:hover,.site-footer-links a[aria-current="page"]{color:var(--green)}
+.site-footer-links a[aria-current="page"]{text-decoration:underline;text-underline-offset:4px}
+.site-footer .button{min-height:36px;padding:0 12px;font-size:10px}
+.requirements-main{width:min(1440px,100%);margin:0 auto;padding:40px clamp(16px,4vw,52px) 60px}
+.requirements-main .admin-page-heading{margin-bottom:24px}
+.requirements-table-wrap{width:100%;overflow:auto;border:1px solid #e7ece8;border-radius:10px;background:#fff}
+.requirements-table{width:100%;min-width:930px;border-collapse:collapse}
+.requirements-table th,.requirements-table td{padding:12px 14px;border-bottom:1px solid #edf0ee;text-align:left;vertical-align:top;font-size:11px;line-height:1.55}
+.requirements-table thead th{position:sticky;top:0;background:#f5f8f6;color:#40524b;font-size:10px;letter-spacing:.2px;z-index:1}
+.requirements-table tbody th{width:110px;white-space:nowrap;color:var(--green);font-size:10px}
+.requirements-table tbody tr:last-child th,.requirements-table tbody tr:last-child td{border-bottom:0}
+.requirements-table tbody tr:hover{background:#fbfdfb}
+.requirements-table td:nth-child(2){min-width:310px}
+.requirements-table td:nth-child(3){min-width:255px}
+.requirements-table td:nth-child(4){min-width:280px}
+.toast-region{z-index:1000}
+@media(max-width:700px){.site-footer{justify-content:flex-start;align-items:flex-start;padding:20px;gap:14px}.site-footer-links{width:100%;gap:14px}.requirements-main{padding:28px 12px 42px}.requirements-main .admin-page-heading h1{font-size:25px}.requirements-table{min-width:900px}}

@@ -377,16 +377,6 @@
       }
     });
 
-    document.querySelector("[data-reset-demo]").addEventListener("click", function () {
-      if (!window.confirm("Reset all Car Care demo data to the original seed?")) return;
-      try {
-        data.resetDemoData();
-        window.location.reload();
-      } catch (error) {
-        ui.toast(error.message, "error");
-      }
-    });
-
     window.addEventListener("storage", function (event) {
       if (event.key !== "carcare.prototype.data.v2") return;
       render();

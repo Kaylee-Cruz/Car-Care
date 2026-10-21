@@ -1,12 +1,76 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Requirements traceability | Car Care</title><link rel="stylesheet" href="css/styles.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Traceability from Car Care requirements to prototype features and demo steps.">
+  <title>Requirements Traceability | Car Care</title>
+  <link rel="stylesheet" href="css/styles.css">
 </head>
-<body>
-  <header class="site-header"><a class="brand" href="index.html"><span class="brand-mark">C</span> Car Care</a><a class="text-link" href="index.html">← Back to home</a></header>
-  <main class="placeholder-page"><p class="eyebrow">CAR CARE PROTOTYPE</p><h1>Requirements traceability</h1><p>This page is reserved for the requirements traceability view and will be completed in a later step.</p><a class="button button-primary" href="index.html">Return to home</a></main>
-  <script src="js/data.js"></script><script src="js/ui.js"></script><script src="js/auth.js"></script>
+<body class="requirements-page">
+  <header class="site-header">
+    <a class="brand" href="index.html"><span class="brand-mark">C</span> Car Care</a>
+    <nav class="header-actions" aria-label="Main navigation">
+      <a class="text-link" href="index.html">Home</a>
+      <a class="text-link" href="login.html">Login</a>
+      <a class="text-link" href="register.html">Register</a>
+    </nav>
+  </header>
+  <main class="requirements-main">
+    <div class="admin-page-heading"><div><p class="eyebrow">PROJECT TRACEABILITY</p><h1>Requirements traceability<span class="heading-period">.</span></h1><p>Each requirement is mapped to its prototype implementation and a short way to demonstrate it.</p></div></div>
+    <div class="requirements-table-wrap">
+      <table class="requirements-table">
+        <thead><tr><th scope="col">Requirement ID</th><th scope="col">Requirement statement</th><th scope="col">Where it’s implemented (page + feature)</th><th scope="col">How to demo it</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">FR-02</th><td>Authenticated users can submit a service request and receive an order number or an error.</td><td>owner.html — Request Service form and confirmation</td><td>Log in as an owner, request service, and note the generated CC order number.</td></tr>
+          <tr><th scope="row">FR-03</th><td>Service requests recommend a provider and offer alternatives.</td><td>owner.html — center recommendations in Request Service</td><td>Start a service request and compare the recommended center with alternatives.</td></tr>
+          <tr><th scope="row">FR-04</th><td>Owners receive reminders about service updates and expiring parts.</td><td>owner.html — Dashboard reminders and Notifications</td><td>Log in as an owner with due parts and review the reminder banner and notifications.</td></tr>
+          <tr><th scope="row">FR-05</th><td>Service centers are prompted about consumers who need parts serviced.</td><td>center.html — Dashboard / Customers needing service</td><td>Log in as a center user and review the urgency-sorted follow-up list.</td></tr>
+          <tr><th scope="row">NFR-01</th><td>The customer website is available 24/7.</td><td>index.html — public landing page; static site can be hosted on GitHub Pages</td><td>Open the landing page at any time; it does not depend on business hours.</td></tr>
+          <tr><th scope="row">NFR-02</th><td>Appointments can only be scheduled from 8:00 AM through 5:00 PM.</td><td>owner.html — pickup time validation in service request and acceptance flows</td><td>Try a pickup outside 8 AM–5 PM and confirm the form explains the error.</td></tr>
+          <tr><th scope="row">NFR-03</th><td>Part and warehouse inventory records update automatically as service is confirmed and completed.</td><td>center.html — Inventory reservations, service completion, and shipment receipt</td><td>Confirm parts, then complete service; inspect reserved and on-hand quantities and activity.</td></tr>
+          <tr><th scope="row">DR-01</th><td>Vehicle records include information retrieved from past services.</td><td>owner.html — Service History; center.html — Vehicle Information</td><td>Open a vehicle’s history and review dated service, parts, center, cost, and payment state.</td></tr>
+          <tr><th scope="row">DR-02</th><td>Completed services are logged with date, center, technician, parts, and cost.</td><td>center.html — Complete Service action and serviceHistory records</td><td>Complete a confirmed request and review the new history record as owner or center user.</td></tr>
+          <tr><th scope="row">SR-01</th><td>Service-center users can access warehouse inventory information.</td><td>center.html — Inventory and Part Shipments tabs</td><td>Log in as a technician or manager and open Inventory.</td></tr>
+          <tr><th scope="row">SR-02</th><td>Customers can access their own vehicle information.</td><td>owner.html — My Vehicles and Vehicle Details / Part Status</td><td>Open My Vehicles and select a vehicle to see its parts and expiry dates.</td></tr>
+          <tr><th scope="row">SR-03</th><td>Customers cannot access service-center inventory.</td><td>owner.html — no warehouse UI; auth.js — center portal role guard</td><td>As an owner, try center.html; verify redirect and absence of inventory in owner pages.</td></tr>
+          <tr><th scope="row">SR-04</th><td>Service-center users cannot see customer SSNs.</td><td>center.html — customer/request details omit SSN fields</td><td>Open a customer request as a center user; confirm only contact and vehicle details appear.</td></tr>
+          <tr><th scope="row">BR-01</th><td>Managers and admins use unique individual logins; accounts cannot be shared.</td><td>admin.html — User Management; login.html — individual authentication</td><td>Create a manager/admin account, then attempt to create a duplicate email.</td></tr>
+          <tr><th scope="row">BR-02</th><td>Admin accounts require a second authentication step.</td><td>login.html — simulated admin authenticator step</td><td>Log in as admin and enter the displayed 6-digit authenticator code.</td></tr>
+          <tr><th scope="row">BR-03</th><td>Only the assigned admin can access their authentication device/code.</td><td>login.html — admin-specific simulated authenticator; admin.html — admin security</td><td>Log in to an admin account and verify the authenticator panel names that admin only.</td></tr>
+          <tr><th scope="row">BR-04</th><td>Vehicle model information stays current as new models are released.</td><td>admin.html — Vehicle Model Catalog and Import new model year</td><td>Import a new year from an existing catalog year and inspect the added entries.</td></tr>
+          <tr><th scope="row">BR-05</th><td>Managers and admins have role-specific functions unavailable to regular users.</td><td>center.html — manager shipment/reorder controls; admin.html — Admin portal access</td><td>Compare manager and technician controls; verify a non-admin cannot open admin.html.</td></tr>
+          <tr><th scope="row">BR-06</th><td>Unlisted vehicle models require admin review before service scheduling.</td><td>owner.html — pending vehicle submission; admin.html — Pending vehicles</td><td>Submit an unlisted vehicle, then approve it in Admin to unlock scheduling.</td></tr>
+          <tr><th scope="row">C-01</th><td>Admin can create, disable, and reset individual accounts.</td><td>admin.html — User Management</td><td>Create a user, disable/enable it, and reset its password.</td></tr>
+          <tr><th scope="row">C-02</th><td>Admin access uses a second authentication step and supports lost-device recovery.</td><td>login.html — lost-device guidance; admin.html — Reset 2-step device</td><td>Review lost-device instructions, then have another admin reset the device.</td></tr>
+          <tr><th scope="row">C-03</th><td>Vehicle model data must not be static.</td><td>admin.html — Add new model; data stored in localStorage</td><td>Add a make/model/year and verify it appears in the catalog and owner picker.</td></tr>
+          <tr><th scope="row">C-04</th><td>The system provides an ongoing way to add new vehicle model data.</td><td>admin.html — Add new model and Import new model year</td><td>Add a new model or import a batch of models for another year.</td></tr>
+          <tr><th scope="row">Use case 1</th><td>Register a car owner or service center; direct already-registered users to login.</td><td>register.html — role-specific registration and duplicate-email flow</td><td>Register an owner or center, then try the same email again.</td></tr>
+          <tr><th scope="row">Use case 2</th><td>Log in with credentials; incorrect passwords show an error and password recovery option.</td><td>login.html — login, forgot-password, and simulated reset flow</td><td>Enter a wrong password, then open Forgot password and complete the simulated reset.</td></tr>
+          <tr><th scope="row">Use case 3</th><td>Maintain vehicle information and notify when a part expiry date is reached.</td><td>owner.html — Vehicle Information System and generated expiry notifications</td><td>Open the owner portal with expired/due parts and inspect automatically generated reminders.</td></tr>
+          <tr><th scope="row">Use case 4</th><td>Owners and service centers can view vehicle part condition and status.</td><td>owner.html — Part Status; center.html — Vehicle Information</td><td>Open part status on the owner portal and compare the center’s vehicle record view.</td></tr>
+          <tr><th scope="row">Use case 5</th><td>Service centers enter or modify vehicle part information after service.</td><td>center.html — Vehicle Information search and part record editing</td><td>Search by vehicle number, edit a part record, and save the new expiry information.</td></tr>
+          <tr><th scope="row">Use case 6</th><td>Expiry notifications prompt service centers to contact owners and request service.</td><td>center.html — Customers needing service / Send Service Request</td><td>Send a center-initiated request to an owner with expiring parts.</td></tr>
+          <tr><th scope="row">Use case 7</th><td>Owners accept or decline service; acceptance schedules pickup from home.</td><td>owner.html — Service Requests accept/decline and pickup scheduling</td><td>Accept a center request with an eligible pickup time, or decline and inspect its status.</td></tr>
+          <tr><th scope="row">Use case 8</th><td>Service centers prepare estimates for all inspected damaged parts.</td><td>center.html — Create Cost Estimate</td><td>Open a picked-up request, add damaged parts and costs, and send the estimate.</td></tr>
+          <tr><th scope="row">Use case 9</th><td>Owners select estimate parts and confirm service or cancel.</td><td>owner.html — Estimate part selection and confirmation</td><td>Select estimate items, review the total, and confirm or cancel service.</td></tr>
+          <tr><th scope="row">Use case 10</th><td>Service centers update installation and expiry details for changed parts.</td><td>center.html — Complete Service and vehicle part record updates</td><td>Complete a service and inspect updated install/expiry dates and service history.</td></tr>
+          <tr><th scope="row">Use case 11</th><td>Owners pay after service through a simulated payment provider.</td><td>owner.html — Pay Now, invoice, simulated payment, and receipt</td><td>Open a completed invoice and make a simulated payment.</td></tr>
+          <tr><th scope="row">Use case 12</th><td>Owners can pay using Net Banking.</td><td>owner.html — simulated payment Net Banking tab</td><td>Select Net Banking, choose a bank, enter a demo user ID, and submit.</td></tr>
+          <tr><th scope="row">Use case 13</th><td>Owners can pay using UPI or another method such as a card.</td><td>owner.html — simulated UPI and Card payment tabs</td><td>Enter a valid UPI ID or choose Card, then submit the simulated payment.</td></tr>
+          <tr><th scope="row">Use case 14</th><td>After payment, owners can report a complaint or positive feedback to Admin.</td><td>owner.html — Report / Feedback; admin.html — Reports &amp; Feedback</td><td>Submit feedback on a paid service, then review and annotate it as Admin.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+  <footer class="site-footer">
+    <a class="brand" href="index.html"><span class="brand-mark">C</span> Car Care</a>
+    <nav class="site-footer-links" aria-label="Site pages"><a href="index.html">Home</a><a href="login.html">Login</a><a href="register.html">Register</a><a href="requirements.html" aria-current="page">Requirements</a></nav>
+    <button class="button button-quiet" type="button" data-reset-demo>Reset demo data</button>
+    <span class="simulated-note">Prototype · all data is simulated</span>
+  </footer>
+  <script src="js/data.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/auth.js"></script>
 </body>
 </html>
