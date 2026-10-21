@@ -21,7 +21,7 @@
       { id: "center-manager-1", name: "Sam Rivera", email: "manager@carcare.demo", password: "demo123", role: "manager", serviceCenterId: "center-1", serviceCenterName: "Greenline Auto Care", serviceCenterAddress: "1840 Cedar Avenue" },
       { id: "center-tech-1", name: "Casey Nguyen", email: "technician@carcare.demo", password: "demo123", role: "technician", serviceCenterId: "center-1", serviceCenterName: "Greenline Auto Care", serviceCenterAddress: "1840 Cedar Avenue" },
       { id: "center-manager-2", name: "Morgan Patel", email: "center2@carcare.demo", password: "demo123", role: "manager", serviceCenterId: "center-2", serviceCenterName: "Northside Motor Works", serviceCenterAddress: "72 North Market Street" },
-      { id: "admin-1", name: "Jordan Lee", email: "admin@carcare.demo", password: "demo123", role: "admin", mfaCode: "246810" }
+      { id: "admin-1", name: "Jordan Lee", email: "admin@carcare.demo", password: "demo123", role: "admin", mfaSecret: "CARCARE-JORDAN-246810", disabled: false }
     ];
 
     const vehicles = [
@@ -135,7 +135,27 @@
     if (stored) {
       try {
         const data = JSON.parse(stored);
-        if (isValidStore(data)) return data;
+        if (isValidStore(data)) {
+          let changed = false;
+          data.users = data.users.map((user) => {
+            const migratedUser = Object.assign({}, user);
+            if (typeof migratedUser.disabled !== "boolean") {
+              migratedUser.disabled = false;
+              changed = true;
+            }
+            if (migratedUser.role === "admin" && !migratedUser.mfaSecret) {
+              migratedUser.mfaSecret = "CARCARE-" + migratedUser.id + "-246810";
+              changed = true;
+            }
+            if (Object.prototype.hasOwnProperty.call(migratedUser, "mfaCode")) {
+              delete migratedUser.mfaCode;
+              changed = true;
+            }
+            return migratedUser;
+          });
+          if (changed) writeStore(data);
+          return data;
+        }
       } catch (error) {
         console.warn("Stored Car Care data is invalid; restoring demo data.", error);
       }

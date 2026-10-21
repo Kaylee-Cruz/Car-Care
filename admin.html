@@ -6,13 +6,15 @@
   <title>Admin | Car Care</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
-<body class="portal-page">
+<body class="portal-page" data-required-role="admin">
   <header class="site-header">
     <a class="brand" href="index.html"><span class="brand-mark">C</span> Car Care</a>
     <nav class="header-actions" aria-label="Main navigation">
       <a class="text-link" href="index.html">Home</a>
       <a class="text-link" href="owner.html">Car Owner</a>
       <a class="text-link" href="center.html">Service Center</a>
+      <span class="user-greeting" id="user-greeting"></span>
+      <button class="button button-quiet" type="button" data-logout>Logout</button>
       <a class="button button-quiet" href="login.html">Login</a>
       <a class="button button-primary" href="register.html">Register</a>
     </nav>
@@ -23,5 +25,8 @@
     <p>The Admin portal is being prepared. Account, vehicle-catalog, and owner-report tools will be available here.</p>
     <a class="button button-primary" href="index.html">Back to home</a>
   </main>
+  <script src="js/data.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/auth.js"></script>
 </body>
 </html>

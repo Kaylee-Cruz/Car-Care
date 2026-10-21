@@ -7,19 +7,84 @@
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body class="auth-page">
-  <header class="site-header"><a class="brand" href="index.html"><span class="brand-mark">C</span> Car Care</a><a class="text-link" href="index.html">← Back to home</a></header>
+  <header class="site-header">
+    <a class="brand" href="index.html"><span class="brand-mark">C</span> Car Care</a>
+    <a class="text-link" href="index.html">← Back to home</a>
+  </header>
   <main class="auth-layout">
-    <section class="auth-aside"><p class="eyebrow">WELCOME BACK</p><h1>Good care starts<br>with a <span>check-in.</span></h1><p>Pick up right where you left off. Your vehicles, reminders, and service updates are waiting.</p><div class="aside-caption"><span class="status-dot"></span> Your maintenance, all in one place</div></section>
+    <section class="auth-aside">
+      <p class="eyebrow">WELCOME BACK</p>
+      <h1>Good care starts<br>with a <span>check-in.</span></h1>
+      <p>Pick up right where you left off. Your vehicles, reminders, and service updates are waiting.</p>
+      <div class="aside-caption"><span class="status-dot"></span> Your maintenance, all in one place</div>
+    </section>
     <section class="auth-card">
-      <div class="auth-card-heading"><p class="eyebrow">YOUR CAR CARE ACCOUNT</p><h2>Log in</h2><p>Use your account to continue.</p></div>
-      <form id="login-form">
-        <label for="login-email">Email address</label><input id="login-email" name="email" type="email" autocomplete="username" placeholder="you@example.com" required>
-        <label for="login-password">Password</label><input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="Enter your password" required>
-        <div id="mfa-field" class="hidden"><label for="mfa-code">Admin verification code <span class="field-hint">Simulated second step</span></label><input id="mfa-code" name="mfaCode" inputmode="numeric" autocomplete="one-time-code" placeholder="6-digit code"></div>
-        <div class="form-message" id="login-message" role="status" aria-live="polite"></div>
-        <button class="button button-primary button-full" type="submit">Log in <span aria-hidden="true">→</span></button>
-      </form>
-      <div class="auth-foot"><span>New to Car Care?</span> <a href="register.html">Create an account</a></div>
+      <div class="auth-card-heading">
+        <p class="eyebrow">YOUR CAR CARE ACCOUNT</p>
+        <h2>Log in</h2>
+        <p>Use your individual account to continue.</p>
+      </div>
+      <div id="credentials-screen">
+        <form id="login-form" novalidate>
+          <label for="login-email">Email address</label>
+          <input id="login-email" name="email" type="email" autocomplete="username" placeholder="you@example.com" required>
+          <label for="login-password">Password</label>
+          <input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="Enter your password" required>
+          <div class="form-message" id="login-message" role="status" aria-live="polite"></div>
+          <a class="form-link hidden" id="forgot-password-link" href="#reset-panel">Forgot password?</a>
+          <button class="button button-primary button-full" type="submit">Log in <span aria-hidden="true">→</span></button>
+        </form>
+        <div class="auth-foot"><span>New to Car Care?</span> <a href="register.html">Create an account</a></div>
+      </div>
+
+      <section id="mfa-screen" class="hidden" aria-labelledby="mfa-title">
+        <p class="eyebrow">SECOND VERIFICATION STEP</p>
+        <h2 id="mfa-title">Verify it’s you</h2>
+        <p class="auth-supporting-copy">Enter the current 6-digit code from your assigned simulated authenticator.</p>
+        <div class="authenticator-device" aria-live="polite">
+          <span class="small-label">SIMULATED AUTHENTICATOR DEVICE - <strong id="authenticator-owner"></strong> ONLY</span>
+          <span class="device-code" id="authenticator-code">------</span>
+          <small id="authenticator-countdown"></small>
+        </div>
+        <form id="mfa-form" novalidate>
+          <label for="mfa-code">6-digit authenticator code</label>
+          <input id="mfa-code" name="mfaCode" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required>
+          <div class="form-message" id="mfa-message" role="status" aria-live="polite"></div>
+          <button class="button button-primary button-full" type="submit">Verify and log in</button>
+        </form>
+        <div class="mfa-links"><a href="#recovery-message" id="lost-device-link">Lost my device</a><button class="link-button" id="mfa-back" type="button">Use a different account</button></div>
+        <p class="recovery-message hidden" id="recovery-message">Contact another administrator to verify your identity and reset your 2-step verification. Recovery is simulated in this prototype.</p>
+      </section>
+
+      <section id="reset-panel" class="hidden" aria-labelledby="reset-title">
+        <p class="eyebrow">ACCOUNT RECOVERY</p>
+        <h2 id="reset-title">Reset your password</h2>
+        <p class="auth-supporting-copy">This recovery flow is simulated and stored only in this browser.</p>
+        <form id="reset-email-form" novalidate>
+          <label for="reset-email">Account email</label>
+          <input id="reset-email" name="email" type="email" autocomplete="email" required>
+          <div class="form-message" id="reset-email-message" role="status" aria-live="polite"></div>
+          <button class="button button-primary button-full" type="submit">Send reset link</button>
+        </form>
+        <div class="reset-next-step hidden" id="reset-sent-step">
+          <p>A simulated reset link has been sent to your email.</p>
+          <button class="button button-outline button-full" id="continue-reset" type="button">Continue to set a new password</button>
+        </div>
+        <form id="new-password-form" class="hidden" novalidate>
+          <label for="new-password">New password</label>
+          <input id="new-password" name="password" type="password" autocomplete="new-password" minlength="8" required>
+          <label for="confirm-new-password">Confirm new password</label>
+          <input id="confirm-new-password" name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required>
+          <div class="form-message" id="new-password-message" role="status" aria-live="polite"></div>
+          <button class="button button-primary button-full" type="submit">Save new password</button>
+        </form>
+        <div id="reset-complete" class="hidden">
+          <p class="form-message success" id="reset-complete-message" role="status"></p>
+          <button class="button button-outline button-full" id="reset-finish" type="button">Return to log in</button>
+        </div>
+        <button class="link-button reset-cancel" id="reset-cancel" type="button">Cancel and return to login</button>
+      </section>
+
       <section class="demo-accounts" aria-labelledby="demo-accounts-heading">
         <h3 id="demo-accounts-heading">Demo accounts</h3>
         <ul>
@@ -30,10 +95,12 @@
           <li><span>Manager</span><code>center2@carcare.demo</code><code>demo123</code></li>
           <li><span>Admin</span><code>admin@carcare.demo</code><code>demo123</code></li>
         </ul>
-        <p>Admin verification code: <code>246810</code></p>
+        <p>The admin authenticator code appears after the correct admin password is entered.</p>
       </section>
     </section>
   </main>
-  <script src="js/data.js"></script><script src="js/ui.js"></script><script src="js/auth.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/auth.js"></script>
 </body>
 </html>
