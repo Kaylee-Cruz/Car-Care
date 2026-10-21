@@ -89,7 +89,7 @@
       vehicles,
       parts,
       serviceRequests: [
-        { id: "request-1", ownerId: "owner-1", vehicleId: "vehicle-1", serviceCenterId: "center-1", status: "inspection-pending", createdAt: dateOffset(-2), orderNumber: "CC-2026-1042" }
+        { id: "request-1", ownerId: "owner-1", vehicleId: "vehicle-1", serviceCenterId: "center-1", status: "requested", initiatedBy: "center", createdAt: dateOffset(-2), orderNumber: "CC-2026-1042", requestedParts: ["Engine oil", "Tires", "Air filter"], reason: "Parts are due or past their estimated expiry date." }
       ],
       serviceHistory,
       notifications,
@@ -162,6 +162,18 @@
               changed = true;
             }
             return migratedUser;
+          });
+          data.serviceRequests = data.serviceRequests.map((request) => {
+            if (request.status === "inspection-pending" && !request.initiatedBy) {
+              changed = true;
+              return Object.assign({}, request, {
+                status: "requested",
+                initiatedBy: "center",
+                requestedParts: request.requestedParts || [],
+                reason: request.reason || "The service center requested a vehicle inspection."
+              });
+            }
+            return request;
           });
           if (changed) writeStore(data);
           return data;

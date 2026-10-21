@@ -23,6 +23,7 @@
       <p class="owner-nav-label">MY CAR CARE</p>
       <button class="owner-nav-link active" type="button" data-owner-tab="dashboard"><span>⌂</span> Dashboard</button>
       <button class="owner-nav-link" type="button" data-owner-tab="vehicles"><span>▣</span> My Vehicles</button>
+      <button class="owner-nav-link" type="button" data-owner-tab="requests"><span>↗</span> Service Requests</button>
       <button class="owner-nav-link" type="button" data-owner-tab="notifications"><span>♧</span> Notifications <span id="nav-unread-count" class="notification-count">0</span></button>
       <button class="owner-nav-link" type="button" data-owner-tab="history"><span>◷</span> Service History</button>
       <button class="owner-nav-link" type="button" data-owner-tab="profile"><span>♙</span> My Profile</button>
@@ -87,8 +88,33 @@
           <div id="vehicle-parts-content">
             <div class="owner-table-wrap"><table class="owner-table"><thead><tr><th>Part</th><th>Installed</th><th>Expiry date</th><th>Days remaining</th><th>Status</th></tr></thead><tbody id="selected-vehicle-parts"></tbody></table></div>
             <div id="no-parts-message" class="owner-empty-state hidden">No part information has been recorded for this vehicle yet.</div>
+            <div class="vehicle-service-action"><p>Need maintenance? Choose what to check and request a pickup.</p><button class="button button-primary button-small" id="request-selected-vehicle-service" type="button">Request Service</button></div>
           </div>
         </section>
+      </section>
+
+      <section class="owner-view" id="owner-requests" data-owner-view="requests" hidden>
+        <div class="owner-page-heading"><div><p class="eyebrow">SERVICE AND PICKUP</p><h1>Service Requests<span class="heading-period">.</span></h1><p>Request service, respond to a center, and follow each request’s progress.</p></div><button class="button button-primary" id="start-service-request" type="button">＋ Request service</button></div>
+        <section class="owner-panel hidden" id="service-request-form-panel">
+          <div class="owner-panel-heading"><div><h2>Request a vehicle pickup</h2><p>Choose what needs checking and select a service center.</p></div><button class="button button-quiet button-small" id="close-service-request-form" type="button">Close</button></div>
+          <form id="service-request-form" class="owner-form" novalidate>
+            <label for="request-vehicle">Vehicle</label><select id="request-vehicle" name="vehicleId" required></select>
+            <div id="request-pending-warning" class="owner-inline-note hidden">This vehicle is pending admin review and cannot be scheduled for service until approved.</div>
+            <fieldset class="request-parts-fieldset"><legend>What should the service center check?</legend><div id="request-parts-options" class="request-parts-options"><p class="owner-empty-state">Choose a vehicle to see its parts.</p></div></fieldset>
+            <label for="request-issue">Other issue or pickup notes <span class="owner-optional-label">(optional)</span></label><textarea id="request-issue" name="issue" rows="3" placeholder="Describe a concern you’d like the service center to inspect"></textarea>
+            <label for="request-pickup-date">Preferred pickup date</label><input id="request-pickup-date" name="pickupDate" type="date" required>
+            <label for="request-pickup-time">Preferred pickup time</label><input id="request-pickup-time" name="pickupTime" type="time" min="08:00" max="17:00" required>
+            <p class="owner-field-hint">Pickups are available between 8:00 AM and 5:00 PM.</p>
+            <label for="request-pickup-address">Pickup address</label><input id="request-pickup-address" name="pickupAddress" type="text" required>
+            <fieldset class="request-centers-fieldset"><legend>Choose a service center</legend><div id="request-centers-options" class="request-centers-options"></div></fieldset>
+            <div class="form-message" id="service-request-message" role="status" aria-live="polite"></div>
+            <div class="owner-form-actions"><button class="button button-primary" id="submit-service-request" type="submit">Submit service request</button><button class="button button-quiet" id="cancel-service-request" type="button">Cancel</button></div>
+          </form>
+        </section>
+        <section class="owner-panel hidden" id="request-confirmation">
+          <div class="owner-request-confirmation"><span class="confirmation-check">✓</span><div><p class="eyebrow">REQUEST SUBMITTED</p><h2>Your order number is <strong id="confirmation-order-number"></strong></h2><p id="request-confirmation-copy"></p></div><button class="button button-outline button-small" id="view-request-tracker" type="button">View request</button></div>
+        </section>
+        <div class="owner-request-list" id="owner-request-list"></div>
       </section>
 
       <section class="owner-view" id="owner-notifications" data-owner-view="notifications" hidden>
