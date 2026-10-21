@@ -29,9 +29,14 @@
     }[character]));
   }
 
+  function maskSsn(value) {
+    const digits = String(value).replace(/\D/g, "");
+    return digits.length === 9 ? "***-**-" + digits.slice(-4) : "***-**-****";
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     document.querySelectorAll("[data-toast]").forEach((element) => element.addEventListener("click", () => toast(element.dataset.toast)));
   });
 
-  window.CarCareUI = { formatDate, toast, escapeHtml };
+  window.CarCareUI = { formatDate, toast, escapeHtml, maskSsn };
 }());

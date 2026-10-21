@@ -2,7 +2,7 @@
   "use strict";
 
   const SESSION_KEY = "carcare.prototype.session.v1";
-  const routes = { owner: "owner.html", center: "center.html", manager: "center.html", admin: "admin.html" };
+  const routes = { owner: "owner.html", center: "center.html", manager: "center.html", technician: "center.html", admin: "admin.html" };
 
   function getSession() {
     try {
@@ -16,7 +16,13 @@
 
   function setSession(user) {
     try {
-      window.localStorage.setItem(SESSION_KEY, JSON.stringify({ id: user.id, name: user.name, email: user.email, role: user.role }));
+      window.localStorage.setItem(SESSION_KEY, JSON.stringify({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        serviceCenterId: user.serviceCenterId || null
+      }));
     } catch (error) {
       console.error("Unable to save the Car Care session.", error);
       throw new Error("Your browser could not save your session.");
@@ -30,7 +36,7 @@
 
   function requireRole(expectedRole) {
     const session = getSession();
-    if (!session || (session.role !== expectedRole && !(expectedRole === "center" && session.role === "manager"))) {
+    if (!session || (session.role !== expectedRole && !(expectedRole === "center" && ["manager", "technician"].includes(session.role)))) {
       window.location.replace("login.html");
       return null;
     }
@@ -99,6 +105,10 @@
         return;
       }
       const user = { id: "user-" + Date.now(), name, email, password, role };
+      if (role === "center") {
+        user.serviceCenterId = "center-" + user.id;
+        user.serviceCenterName = name;
+      }
       try {
         window.CarCareData.addUser(user);
         setSession(user);
