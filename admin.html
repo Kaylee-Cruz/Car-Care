@@ -16,24 +16,79 @@
     </nav>
   </header>
   <main class="admin-main">
-    <div class="admin-page-heading"><div><p class="eyebrow">ADMIN PORTAL</p><h1>Platform overview<span class="heading-period">.</span></h1><p>Review owner reports and feedback submitted after completed services.</p></div></div>
-    <div class="admin-summary-grid">
-      <article class="admin-summary-card"><span>Accounts</span><strong id="admin-account-count">0</strong></article>
-      <article class="admin-summary-card"><span>Vehicle models</span><strong id="admin-model-count">0</strong></article>
-      <article class="admin-summary-card"><span>Owner reports</span><strong id="admin-report-count">0</strong></article>
+    <div class="admin-page-heading">
+      <div><p class="eyebrow">ADMIN PORTAL</p><h1>Platform overview<span class="heading-period">.</span></h1><p>Manage accounts, vehicle models, security, reports, and service-center performance.</p></div>
     </div>
-    <section class="admin-panel">
-      <div class="admin-panel-heading"><div><p class="eyebrow">USE CASE 14</p><h2>Owner Reports / Feedback</h2><p>Reports are stored in this browser’s demo data.</p></div></div>
+
+    <section aria-labelledby="admin-dashboard-title">
+      <h2 class="admin-visually-hidden" id="admin-dashboard-title">Platform totals</h2>
+      <div class="admin-summary-grid admin-dashboard-grid">
+        <article class="admin-summary-card"><span>Users</span><strong id="admin-user-count">0</strong></article>
+        <article class="admin-summary-card"><span>Vehicles</span><strong id="admin-vehicle-count">0</strong></article>
+        <article class="admin-summary-card"><span>Open service requests</span><strong id="admin-open-request-count">0</strong></article>
+        <article class="admin-summary-card"><span>Completed services</span><strong id="admin-completed-service-count">0</strong></article>
+        <article class="admin-summary-card"><span>Total successful payments</span><strong id="admin-total-payments">$0.00</strong></article>
+        <article class="admin-summary-card"><span>Open reports</span><strong id="admin-open-report-count">0</strong></article>
+        <article class="admin-summary-card"><span>Vehicles pending review</span><strong id="admin-pending-vehicle-count">0</strong></article>
+      </div>
+    </section>
+
+    <section class="admin-panel" aria-labelledby="admin-users-title">
+      <div class="admin-panel-heading"><div><p class="eyebrow">BR-01 · C-01</p><h2 id="admin-users-title">User Management</h2><p>Individual accounts only. Shared accounts are not permitted.</p></div></div>
+      <form id="admin-create-user" class="admin-form-grid">
+        <label>Full name<input name="name" autocomplete="name" required></label>
+        <label>Email<input name="email" type="email" autocomplete="email" required></label>
+        <label>Temporary password<input name="password" type="password" minlength="6" autocomplete="new-password" required></label>
+        <label>Role<select name="role" required><option value="manager">Manager</option><option value="technician">Technician</option><option value="admin">Admin</option></select></label>
+        <label class="admin-center-field">Service center<select name="serviceCenterId" id="admin-user-center"></select></label>
+        <div class="admin-form-actions"><p class="admin-form-message" id="admin-user-message" role="status"></p><button class="button button-primary" type="submit">Create individual account</button></div>
+      </form>
+      <div class="center-table-wrap"><table class="center-table"><thead><tr><th>Name</th><th>Role</th><th>Email</th><th>SSN (masked)</th><th>Status</th><th>Actions</th></tr></thead><tbody id="admin-accounts"></tbody></table></div>
+    </section>
+
+    <section class="admin-panel" aria-labelledby="admin-security-title">
+      <div class="admin-panel-heading"><div><p class="eyebrow">BR-02 · BR-03 · C-02</p><h2 id="admin-security-title">Admin Security</h2><p>Lost-device recovery requires another admin to reset the account’s 2-step device.</p></div></div>
+      <div class="center-table-wrap"><table class="center-table"><thead><tr><th>Admin</th><th>Email</th><th>2-step verification</th><th>Last device reset</th><th>Recovery</th></tr></thead><tbody id="admin-security"></tbody></table></div>
+    </section>
+
+    <section class="admin-panel" aria-labelledby="admin-catalog-title">
+      <div class="admin-panel-heading"><div><p class="eyebrow">BR-04 · BR-06 · C-03 · C-04</p><h2 id="admin-catalog-title">Vehicle Model Catalog</h2><p>Keep supported vehicle models current so approved vehicles can be scheduled.</p></div></div>
+      <div class="admin-catalog-forms">
+        <form id="admin-add-model" class="admin-inline-form">
+          <h3>Add new model</h3>
+          <label>Make<input name="make" required></label>
+          <label>Model<input name="model" required></label>
+          <label>Year<input name="year" type="number" min="1900" required></label>
+          <button class="button button-primary" type="submit">Add model</button>
+          <p id="admin-model-message" class="admin-form-message" role="status"></p>
+        </form>
+        <form id="admin-import-year" class="admin-inline-form">
+          <h3>Import new model year</h3>
+          <label>Copy models from<select name="sourceYear" id="admin-source-year" required></select></label>
+          <label>New model year<input name="targetYear" type="number" min="1900" required></label>
+          <button class="button button-outline" type="submit">Import model year</button>
+          <p id="admin-import-message" class="admin-form-message" role="status"></p>
+        </form>
+      </div>
+      <div class="admin-catalog-caption"><strong id="admin-model-count">0</strong> catalog entries <span>Last updated: <time id="admin-model-updated">Not recorded</time></span></div>
+      <div class="center-table-wrap"><table class="center-table"><thead><tr><th>Make</th><th>Model</th><th>Year</th><th>Last updated</th></tr></thead><tbody id="admin-models"></tbody></table></div>
+    </section>
+
+    <section class="admin-panel" aria-labelledby="admin-pending-title">
+      <div class="admin-panel-heading"><div><h2 id="admin-pending-title">Pending vehicles</h2><p>Approving a vehicle adds its model to the catalog and unlocks service scheduling.</p></div></div>
+      <div class="center-table-wrap"><table class="center-table"><thead><tr><th>Owner</th><th>Vehicle number</th><th>Make / model</th><th>Year</th><th>Actions</th></tr></thead><tbody id="admin-pending-vehicles"></tbody></table></div>
+    </section>
+
+    <section class="admin-panel" aria-labelledby="admin-reports-title">
+      <div class="admin-panel-heading"><div><p class="eyebrow">USE CASE 14</p><h2 id="admin-reports-title">Reports &amp; Feedback</h2><p>Review owner complaints and positive feedback submitted after paid services.</p></div></div>
       <div id="admin-reports" class="admin-report-list"></div>
     </section>
-    <section class="admin-panel">
-      <div class="admin-panel-heading"><div><h2>Accounts</h2><p>Individual prototype accounts.</p></div></div>
-      <div class="center-table-wrap"><table class="center-table"><thead><tr><th>Name</th><th>Role</th><th>Email</th></tr></thead><tbody id="admin-accounts"></tbody></table></div>
+
+    <section class="admin-panel" aria-labelledby="admin-centers-title">
+      <div class="admin-panel-heading"><div><h2 id="admin-centers-title">Service Centers</h2><p>Completed service count and average submitted rating.</p></div></div>
+      <div class="center-table-wrap"><table class="center-table"><thead><tr><th>Service center</th><th>Services</th><th>Average rating</th></tr></thead><tbody id="admin-centers"></tbody></table></div>
     </section>
-    <section class="admin-panel">
-      <div class="admin-panel-heading"><div><h2>Vehicle model catalog</h2><p>Current supported makes, models, and years.</p></div></div>
-      <div class="model-chips" id="admin-models"></div>
-    </section>
+
     <button class="button button-outline" type="button" data-reset-demo>Reset demo data</button>
   </main>
   <script src="js/data.js"></script>
