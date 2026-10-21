@@ -4,7 +4,7 @@
   const STORAGE_KEY = "carcare.prototype.data.v2";
   const COLLECTIONS = [
     "users", "vehicles", "parts", "serviceRequests", "serviceHistory",
-    "notifications", "inventory", "shipments", "vehicleModels", "payments", "reports"
+    "notifications", "inventory", "inventoryActivity", "shipments", "vehicleModels", "payments", "reports"
   ];
 
   function dateOffset(days) {
@@ -60,14 +60,14 @@
     ].map((entry, index) => ({ id: "model-" + (index + 1), make: entry[0], model: entry[1], year: entry[2] }));
 
     const inventory = [
-      { id: "inventory-1", serviceCenterId: "center-1", partName: "Engine oil (5W-30)", sku: "OIL-5W30", quantity: 18, reorderLevel: 8, unitPrice: 34.99 },
-      { id: "inventory-2", serviceCenterId: "center-1", partName: "Brake pad set", sku: "BRK-HON-CV", quantity: 4, reorderLevel: 5, unitPrice: 89.5 },
-      { id: "inventory-3", serviceCenterId: "center-1", partName: "Cabin air filter", sku: "FLT-CAB-01", quantity: 7, reorderLevel: 4, unitPrice: 21.99 },
-      { id: "inventory-4", serviceCenterId: "center-1", partName: "Car battery", sku: "BAT-12V-60", quantity: 3, reorderLevel: 4, unitPrice: 159.99 },
-      { id: "inventory-5", serviceCenterId: "center-2", partName: "Engine oil (5W-30)", sku: "OIL-5W30", quantity: 12, reorderLevel: 8, unitPrice: 34.99 },
-      { id: "inventory-6", serviceCenterId: "center-2", partName: "All-season tire", sku: "TIRE-AS-16", quantity: 8, reorderLevel: 6, unitPrice: 124.5 },
-      { id: "inventory-7", serviceCenterId: "center-2", partName: "Engine air filter", sku: "FLT-ENG-02", quantity: 2, reorderLevel: 5, unitPrice: 26.5 },
-      { id: "inventory-8", serviceCenterId: "center-2", partName: "Timing belt kit", sku: "BLT-TM-04", quantity: 3, reorderLevel: 2, unitPrice: 215 }
+      { id: "inventory-1", serviceCenterId: "center-1", partName: "Engine oil (5W-30)", sku: "OIL-5W30", compatibleMakes: ["Honda", "Toyota", "Ford", "Hyundai", "Subaru", "Nissan", "Mazda"], quantity: 18, quantityReserved: 0, reorderLevel: 8, unitPrice: 34.99 },
+      { id: "inventory-2", serviceCenterId: "center-1", partName: "Brake pad set", sku: "BRK-HON-CV", compatibleMakes: ["Honda", "Toyota"], quantity: 4, quantityReserved: 0, reorderLevel: 5, unitPrice: 89.5 },
+      { id: "inventory-3", serviceCenterId: "center-1", partName: "Cabin air filter", sku: "FLT-CAB-01", compatibleMakes: ["Honda", "Toyota", "Ford", "Hyundai", "Subaru", "Nissan", "Mazda"], quantity: 7, quantityReserved: 0, reorderLevel: 4, unitPrice: 21.99 },
+      { id: "inventory-4", serviceCenterId: "center-1", partName: "Car battery", sku: "BAT-12V-60", compatibleMakes: ["Honda", "Toyota", "Ford", "Hyundai", "Subaru", "Nissan", "Mazda"], quantity: 3, quantityReserved: 0, reorderLevel: 4, unitPrice: 159.99 },
+      { id: "inventory-5", serviceCenterId: "center-2", partName: "Engine oil (5W-30)", sku: "OIL-5W30", compatibleMakes: ["Honda", "Toyota", "Ford", "Hyundai", "Subaru", "Nissan", "Mazda"], quantity: 12, quantityReserved: 0, reorderLevel: 8, unitPrice: 34.99 },
+      { id: "inventory-6", serviceCenterId: "center-2", partName: "All-season tire", sku: "TIRE-AS-16", compatibleMakes: ["Honda", "Toyota", "Ford", "Hyundai", "Subaru", "Nissan", "Mazda"], quantity: 8, quantityReserved: 0, reorderLevel: 6, unitPrice: 124.5 },
+      { id: "inventory-7", serviceCenterId: "center-2", partName: "Engine air filter", sku: "FLT-ENG-02", compatibleMakes: ["Honda", "Toyota", "Ford", "Hyundai", "Subaru", "Nissan", "Mazda"], quantity: 2, quantityReserved: 0, reorderLevel: 5, unitPrice: 26.5 },
+      { id: "inventory-8", serviceCenterId: "center-2", partName: "Timing belt kit", sku: "BLT-TM-04", compatibleMakes: ["Honda", "Toyota", "Ford", "Hyundai", "Subaru", "Nissan", "Mazda"], quantity: 3, quantityReserved: 0, reorderLevel: 2, unitPrice: 215 }
     ];
 
     const serviceHistory = [
@@ -94,9 +94,10 @@
       serviceHistory,
       notifications,
       inventory,
+      inventoryActivity: [],
       shipments: [
-        { id: "shipment-1", serviceCenterId: "center-1", item: "Brake pad set", quantity: 6, status: "In transit", expectedDate: dateOffset(3) },
-        { id: "shipment-2", serviceCenterId: "center-2", item: "Engine air filter", quantity: 10, status: "Scheduled", expectedDate: dateOffset(8) }
+        { id: "shipment-1", serviceCenterId: "center-1", inventoryId: "inventory-2", item: "Brake pad set", quantity: 6, supplier: "Demo Parts Supply", status: "In Transit", expectedDate: dateOffset(3) },
+        { id: "shipment-2", serviceCenterId: "center-2", inventoryId: "inventory-7", item: "Engine air filter", quantity: 10, supplier: "Northside Auto Parts", status: "Scheduled", expectedDate: dateOffset(8) }
       ],
       vehicleModels,
       payments: [
@@ -112,7 +113,9 @@
   }
 
   function isValidStore(data) {
-    return data && COLLECTIONS.every((collection) => Array.isArray(data[collection]));
+    return data && COLLECTIONS.every((collection) =>
+      collection === "inventoryActivity" || Array.isArray(data[collection])
+    ) && Array.isArray(data.users) && Array.isArray(data.inventory) && Array.isArray(data.shipments);
   }
 
   function writeStore(data) {
@@ -137,6 +140,42 @@
         const data = JSON.parse(stored);
         if (isValidStore(data)) {
           let changed = false;
+          if (!Array.isArray(data.inventoryActivity)) {
+            data.inventoryActivity = [];
+            changed = true;
+          }
+          data.inventory = data.inventory.map((item) => {
+            let migratedItem = item;
+            if (!Array.isArray(migratedItem.compatibleMakes) || !migratedItem.compatibleMakes.length || !Number.isFinite(Number(migratedItem.quantityReserved))) {
+              migratedItem = Object.assign({}, migratedItem, {
+                compatibleMakes: Array.isArray(migratedItem.compatibleMakes) && migratedItem.compatibleMakes.length
+                  ? migratedItem.compatibleMakes
+                  : Array.from(new Set(data.vehicleModels.map((model) => model.make))),
+                quantityReserved: Number.isFinite(Number(migratedItem.quantityReserved)) ? Number(migratedItem.quantityReserved) : 0
+              });
+              changed = true;
+            }
+            return migratedItem;
+          });
+          data.shipments = data.shipments.map((shipment) => {
+            const migratedShipment = Object.assign({}, shipment);
+            if (migratedShipment.status === "In transit") {
+              migratedShipment.status = "In Transit";
+              changed = true;
+            }
+            if (!migratedShipment.supplier) {
+              migratedShipment.supplier = "Supplier not recorded";
+              changed = true;
+            }
+            if (!migratedShipment.inventoryId) {
+              const inventoryItem = data.inventory.find((item) => item.serviceCenterId === migratedShipment.serviceCenterId && item.partName === migratedShipment.item);
+              if (inventoryItem) {
+                migratedShipment.inventoryId = inventoryItem.id;
+                changed = true;
+              }
+            }
+            return migratedShipment;
+          });
           data.users = data.users.map((user) => {
             const migratedUser = Object.assign({}, user);
             if (migratedUser.id === "owner-1" && (!migratedUser.phone || !migratedUser.address)) {

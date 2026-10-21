@@ -94,6 +94,103 @@
       })[status] || "Requested";
     }
 
+    function isManager() {
+      return session.role === "manager";
+    }
+
+    function inventoryForCenter() {
+      return getData("inventory").filter((item) => item.serviceCenterId === centerId);
+    }
+
+    function inventoryMatch(partName) {
+      const name = String(partName || "").toLowerCase();
+      const keywords = name.includes("oil") ? ["oil"] :
+        name.includes("brake") ? ["brake"] :
+          name.includes("tire") ? ["tire"] :
+            name.includes("battery") ? ["battery"] :
+              name.includes("filter") ? ["filter"] :
+                name.includes("belt") ? ["belt"] : [name];
+      return inventoryForCenter().find((item) => keywords.some((keyword) => item.partName.toLowerCase().includes(keyword))) || null;
+    }
+
+    function inventoryActivityEntry(item, quantityChange, reservedChange, reason, orderNumber) {
+      return {
+        id: "inventory-activity-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7),
+        serviceCenterId: centerId,
+        date: new Date().toISOString(),
+        inventoryId: item.id,
+        part: item.partName,
+        change: (quantityChange ? "On hand " + (quantityChange > 0 ? "+" : "") + quantityChange : "") +
+          (quantityChange && reservedChange ? " · " : "") +
+          (reservedChange ? "Reserved " + (reservedChange > 0 ? "+" : "") + reservedChange : ""),
+        quantityChange,
+        reservedChange,
+        reason,
+        orderNumber: orderNumber || ""
+      };
+    }
+
+    function saveInventoryChanges(inventory, activities) {
+      saveData("inventory", inventory);
+      if (activities.length) saveData("inventoryActivity", getData("inventoryActivity").concat(activities));
+    }
+
+    function reservationsFor(request) {
+      return Array.isArray(request.inventoryReservations) ? request.inventoryReservations : [];
+    }
+
+    function reservationShortages(request) {
+      return reservationsFor(request).filter((reservation) => reservation.status !== "reserved");
+    }
+
+    function syncConfirmedReservations(retryShortages) {
+      const requests = getData("serviceRequests");
+      const inventory = getData("inventory");
+      const activities = [];
+      let requestsChanged = false;
+      const updatedRequests = requests.map((request) => {
+        if (request.serviceCenterId !== centerId || !["parts-confirmed", "in-service"].includes(request.status)) return request;
+        const selectedItems = selectedEstimateItems(request);
+        const reservations = reservationsFor(request).slice();
+        let changed = false;
+        selectedItems.forEach((estimateItem) => {
+          const previous = reservations.find((entry) => entry.estimateItemId === estimateItem.id);
+          if (previous && (previous.status === "reserved" || !retryShortages)) return;
+          const item = inventoryMatch(estimateItem.partName);
+          const record = item && inventory.find((entry) => entry.id === item.id);
+          if (!record) {
+            if (!previous) {
+              reservations.push({ estimateItemId: estimateItem.id, inventoryId: null, partName: estimateItem.partName, quantity: 1, status: "out-of-stock" });
+              changed = true;
+            }
+            return;
+          }
+          const available = Math.max(0, Number(record.quantity || 0) - Number(record.quantityReserved || 0));
+          if (available < 1) {
+            if (!previous || previous.status !== "out-of-stock" || previous.inventoryId !== record.id) {
+              const shortage = { estimateItemId: estimateItem.id, inventoryId: record.id, partName: record.partName, quantity: 1, status: "out-of-stock" };
+              if (previous) reservations[reservations.indexOf(previous)] = shortage;
+              else reservations.push(shortage);
+              changed = true;
+            }
+            return;
+          }
+          record.quantityReserved = Number(record.quantityReserved || 0) + 1;
+          const reservation = { estimateItemId: estimateItem.id, inventoryId: record.id, partName: record.partName, quantity: 1, status: "reserved" };
+          if (previous) reservations[reservations.indexOf(previous)] = reservation;
+          else reservations.push(reservation);
+          activities.push(inventoryActivityEntry(record, 0, 1, "Reserved for confirmed service", request.orderNumber));
+          changed = true;
+        });
+        if (!changed) return request;
+        requestsChanged = true;
+        return Object.assign({}, request, { inventoryReservations: reservations, updatedAt: new Date().toISOString() });
+      });
+      if (activities.length) saveData("inventory", inventory);
+      if (activities.length) saveData("inventoryActivity", getData("inventoryActivity").concat(activities));
+      if (requestsChanged) saveData("serviceRequests", updatedRequests);
+    }
+
     function statusClass(status) {
       if (["completed", "service-completed", "paid"].includes(status)) return "ok";
       if (["declined", "cancelled"].includes(status)) return "expired";
@@ -208,6 +305,7 @@
     }
 
     function renderRequests() {
+      syncConfirmedReservations(false);
       const requests = sortRequests(requestsForCenter());
       document.getElementById("center-requests-table").innerHTML = requestRows(requests, false);
       document.getElementById("dashboard-requests").innerHTML = requestRows(requests.slice(0, 5), true);
@@ -216,12 +314,7 @@
     }
 
     function inventoryPrice(partName) {
-      const items = getData("inventory").filter((item) => item.serviceCenterId === centerId);
-      const needle = partName.toLowerCase();
-      const keywords = needle.includes("oil") ? ["oil"] : needle.includes("brake") ? ["brake"] :
-        needle.includes("tire") ? ["tire"] : needle.includes("battery") ? ["battery"] :
-          needle.includes("filter") ? ["filter"] : needle.includes("belt") ? ["belt"] : [needle];
-      const match = items.find((item) => keywords.some((keyword) => item.partName.toLowerCase().includes(keyword)));
+      const match = inventoryMatch(partName);
       return match ? Number(match.unitPrice) || 0 : 0;
     }
 
@@ -254,7 +347,12 @@
         return "<div class=\"center-action-box\"><strong>Estimate sent to owner</strong><p>Waiting for the owner to confirm which items to service.</p>" + estimateTable(estimateItemsFor(request), false) + "</div>";
       }
       if (request.status === "parts-confirmed") {
-        return "<div class=\"center-action-box\"><strong>Owner confirmed parts for service</strong><p>Only the selected parts will be completed and logged.</p>" + estimateTable(selectedEstimateItems(request), false) + "<button class=\"button button-primary\" type=\"button\" data-start-service=\"" + escape(request.id) + "\">Start Service</button></div>";
+        const shortages = reservationShortages(request);
+        const warning = shortages.length
+          ? "<div class=\"center-stock-warning\"><strong>Parts out of stock</strong><p>" + escape(shortages.map((item) => item.partName).join(", ")) + " cannot be reserved yet. Schedule a shipment and receive it before starting service.</p><button class=\"button button-outline button-small\" type=\"button\" data-open-tab=\"shipments\">View Part Shipments</button></div>"
+          : "";
+        return "<div class=\"center-action-box\"><strong>Owner confirmed parts for service</strong><p>Only the selected parts will be completed and logged.</p>" + estimateTable(selectedEstimateItems(request), false) + warning +
+          (shortages.length ? "<button class=\"button button-primary\" type=\"button\" data-start-service=\"" + escape(request.id) + "\" disabled>Start Service</button>" : "<button class=\"button button-primary\" type=\"button\" data-start-service=\"" + escape(request.id) + "\">Start Service</button>") + "</div>";
       }
       if (request.status === "in-service") {
         return completionForm(request);
@@ -326,7 +424,17 @@
       if (centerUser && centerUser.serviceCenterName) document.title = centerUser.serviceCenterName + " | Car Care";
       renderFollowups();
       renderRequests();
+      renderInventory();
+      renderShipmentForm();
+      renderShipments();
     }
+
+    window.addEventListener("storage", (event) => {
+      if (event.key !== "carcare.prototype.data.v2") return;
+      syncConfirmedReservations(false);
+      renderDashboard();
+      if (activeRequestId) renderRequestDetail(activeRequestId);
+    });
 
     function openTab(tab) {
       document.querySelectorAll("[data-center-tab]").forEach((button) => button.classList.toggle("active", button.dataset.centerTab === tab));
@@ -508,6 +616,172 @@
         ).join("") : "<p class=\"center-empty-state\">No service history recorded for this vehicle.</p>") + "</div></section>";
     }
 
+    function renderInventory() {
+      const inventory = inventoryForCenter().sort((left, right) => left.partName.localeCompare(right.partName));
+      document.getElementById("center-inventory-table").innerHTML = inventory.length ? inventory.map((item) => {
+        const low = Number(item.quantity || 0) <= Number(item.reorderLevel || 0);
+        const reorderControl = isManager()
+          ? "<td><div class=\"center-reorder-control\"><input type=\"number\" min=\"0\" step=\"1\" value=\"" + Number(item.reorderLevel || 0) + "\" data-reorder-level=\"" + escape(item.id) + "\" aria-label=\"Reorder level for " + escape(item.partName) + "\"><button type=\"button\" class=\"link-button\" data-save-reorder=\"" + escape(item.id) + "\">Save</button></div></td>"
+          : "<td>" + Number(item.reorderLevel || 0) + "</td>";
+        return "<tr><td><strong>" + escape(item.partName) + "</strong></td><td>" + escape(item.sku || "—") + "</td><td>" + escape((item.compatibleMakes || []).join(", ") || "Various") + "</td><td>" + Number(item.quantity || 0) + "</td><td>" + Number(item.quantityReserved || 0) + "</td>" + reorderControl + "<td>$" + Number(item.unitPrice || 0).toFixed(2) + "</td><td>" + (low ? "<span class=\"table-status expired\">Low stock</span>" : "<span class=\"table-status ok\">In stock</span>") + "</td></tr>";
+      }).join("") : "<tr><td colspan=\"8\" class=\"center-table-empty\">No inventory has been recorded for this service center.</td></tr>";
+      document.getElementById("center-inventory-actions").innerHTML = isManager()
+        ? "<p>Only managers can edit reorder levels or schedule and approve shipments.</p>"
+        : "<p>Need more stock? Use Part Shipments to submit a shipment request to your manager.</p>";
+      renderInventoryActivity();
+    }
+
+    function renderInventoryActivity() {
+      const rows = getData("inventoryActivity").filter((entry) => entry.serviceCenterId === centerId)
+        .sort((left, right) => new Date(right.date) - new Date(left.date));
+      document.getElementById("center-inventory-activity").innerHTML = rows.length ? rows.map((entry) =>
+        "<tr><td>" + escape(window.CarCareUI.formatDate(String(entry.date || "").slice(0, 10))) + "</td><td>" + escape(entry.part || "Part") + "</td><td>" + escape(entry.change || "Updated") + "</td><td>" + escape(entry.reason || "Inventory update") + "</td><td>" + escape(entry.orderNumber || "—") + "</td></tr>"
+      ).join("") : "<tr><td colspan=\"5\" class=\"center-table-empty\">No inventory activity has been recorded yet.</td></tr>";
+    }
+
+    function renderShipmentForm() {
+      const form = document.getElementById("shipment-form");
+      const inventory = inventoryForCenter().sort((left, right) => left.partName.localeCompare(right.partName));
+      document.getElementById("shipment-role-label").textContent = isManager() ? "Manager controls" : "Technician request";
+      document.getElementById("shipment-form-heading").textContent = isManager() ? "Schedule Shipment" : "Request a Shipment";
+      document.getElementById("shipment-form-help").textContent = isManager()
+        ? "Schedule deliveries and approve technician requests. Received shipments update stock automatically."
+        : "Submit a restock request for manager approval. You can track shipment status here.";
+      form.innerHTML = "<div class=\"center-shipment-fields\"><label>Part<select name=\"inventoryId\" required><option value=\"\">Choose a warehouse part</option>" +
+        inventory.map((item) => "<option value=\"" + escape(item.id) + "\">" + escape(item.partName + " · " + item.sku) + "</option>").join("") +
+        "</select></label><label>Quantity<input type=\"number\" name=\"quantity\" min=\"1\" step=\"1\" required></label><label>" + (isManager() ? "Manufacturer / supplier" : "Suggested manufacturer / supplier") + "<input name=\"supplier\" required placeholder=\"Supplier name\"></label><label>Expected delivery date<input type=\"date\" name=\"expectedDate\" min=\"" + todayString() + "\" required></label></div>" +
+        "<div class=\"form-message\" data-shipment-message role=\"status\"></div><button class=\"button button-primary\" type=\"submit\">" + (isManager() ? "Schedule Shipment" : "Request Shipment") + "</button>";
+      form.elements.expectedDate.min = todayString();
+    }
+
+    function shipmentAction(shipment) {
+      if (!isManager()) return "<span class=\"center-inline-note\">" + (shipment.status === "Requested" ? "Awaiting manager approval" : "Manager updates shipment status") + "</span>";
+      if (shipment.status === "Requested") return "<button type=\"button\" class=\"button button-outline button-small\" data-shipment-status=\"" + escape(shipment.id) + "\" data-next-status=\"Scheduled\">Approve &amp; Schedule</button>";
+      if (shipment.status === "Scheduled") return "<button type=\"button\" class=\"button button-outline button-small\" data-shipment-status=\"" + escape(shipment.id) + "\" data-next-status=\"In Transit\">Mark In Transit</button>";
+      if (shipment.status === "In Transit") return "<button type=\"button\" class=\"button button-primary button-small\" data-shipment-status=\"" + escape(shipment.id) + "\" data-next-status=\"Received\">Mark Received</button>";
+      return "<span class=\"center-inline-note\">Stock received</span>";
+    }
+
+    function renderShipments() {
+      const shipments = getData("shipments").filter((shipment) => shipment.serviceCenterId === centerId)
+        .sort((left, right) => new Date(right.createdAt || right.expectedDate || 0) - new Date(left.createdAt || left.expectedDate || 0));
+      document.getElementById("center-shipments-table").innerHTML = shipments.length ? shipments.map((shipment) => {
+        const label = shipment.status || "Scheduled";
+        const statusClassName = label === "Received" ? "ok" : label === "Requested" ? "due" : "due";
+        return "<tr><td><strong>" + escape(shipment.item || "Part") + "</strong></td><td>" + Number(shipment.quantity || 0) + "</td><td>" + escape(shipment.supplier || "Not recorded") + "</td><td>" + escape(shipment.expectedDate ? window.CarCareUI.formatDate(shipment.expectedDate) : "Not set") + "</td><td><span class=\"table-status " + statusClassName + "\">" + escape(label) + "</span></td><td>" + shipmentAction(shipment) + "</td></tr>";
+      }).join("") : "<tr><td colspan=\"6\" class=\"center-table-empty\">No part shipments for this service center.</td></tr>";
+    }
+
+    function createShipment(form) {
+      const item = inventoryForCenter().find((entry) => entry.id === form.elements.inventoryId.value);
+      const quantity = Number(form.elements.quantity.value);
+      const supplier = form.elements.supplier.value.trim();
+      const expectedDate = form.elements.expectedDate.value;
+      const message = form.querySelector("[data-shipment-message]");
+      if (!item) {
+        message.textContent = "Choose a part in this center’s inventory.";
+        return;
+      }
+      if (!Number.isInteger(quantity) || quantity < 1) {
+        message.textContent = "Enter a whole quantity greater than zero.";
+        return;
+      }
+      if (!supplier || !expectedDate || expectedDate < todayString()) {
+        message.textContent = "Enter a supplier and a delivery date that is today or later.";
+        return;
+      }
+      const shipment = {
+        id: "shipment-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
+        serviceCenterId: centerId,
+        inventoryId: item.id,
+        item: item.partName,
+        quantity,
+        supplier,
+        expectedDate,
+        status: isManager() ? "Scheduled" : "Requested",
+        createdAt: new Date().toISOString(),
+        requestedBy: isManager() ? null : session.id,
+        scheduledBy: isManager() ? session.id : null
+      };
+      try {
+        saveData("shipments", getData("shipments").concat(shipment));
+        form.reset();
+        form.elements.expectedDate.min = todayString();
+        renderShipments();
+        window.CarCareUI.toast(isManager() ? "Shipment scheduled." : "Shipment request sent to your manager.", "success");
+      } catch (error) {
+        message.textContent = "Shipment could not be saved: " + error.message;
+      }
+    }
+
+    function updateShipmentStatus(shipmentId, nextStatus) {
+      if (!isManager()) {
+        window.CarCareUI.toast("Only a manager can approve or update shipments.", "error");
+        return;
+      }
+      const shipments = getData("shipments");
+      const shipment = shipments.find((item) => item.id === shipmentId && item.serviceCenterId === centerId);
+      const transitions = { Requested: "Scheduled", Scheduled: "In Transit", "In Transit": "Received" };
+      if (!shipment || transitions[shipment.status] !== nextStatus) {
+        window.CarCareUI.toast("This shipment status cannot be changed.", "error");
+        return;
+      }
+      try {
+        const updated = Object.assign({}, shipment, {
+          status: nextStatus,
+          updatedAt: new Date().toISOString(),
+          ...(nextStatus === "Scheduled" ? { scheduledBy: session.id } : {}),
+          ...(nextStatus === "In Transit" ? { shippedAt: new Date().toISOString() } : {}),
+          ...(nextStatus === "Received" ? { receivedAt: new Date().toISOString(), receivedBy: session.id } : {})
+        });
+        if (nextStatus === "Received") {
+          const inventory = getData("inventory");
+          const item = inventory.find((entry) => entry.id === shipment.inventoryId && entry.serviceCenterId === centerId) ||
+            inventory.find((entry) => entry.serviceCenterId === centerId && entry.partName === shipment.item);
+          if (!item) throw new Error("The shipment’s inventory item could not be found.");
+          item.quantity = Number(item.quantity || 0) + Number(shipment.quantity || 0);
+          saveInventoryChanges(inventory, [
+            inventoryActivityEntry(item, Number(shipment.quantity || 0), 0, "Shipment received from " + (shipment.supplier || "supplier"), shipment.orderNumber)
+          ]);
+        }
+        saveData("shipments", shipments.map((item) => item.id === shipmentId ? updated : item));
+        if (nextStatus === "Received") syncConfirmedReservations(true);
+        renderShipments();
+        renderInventory();
+        renderRequests();
+        if (activeRequestId) renderRequestDetail(activeRequestId);
+        window.CarCareUI.toast(nextStatus === "Received" ? "Shipment received. Inventory and reservations updated." : "Shipment status updated to " + nextStatus + ".", "success");
+      } catch (error) {
+        window.CarCareUI.toast("Shipment could not be updated: " + error.message, "error");
+      }
+    }
+
+    function updateReorderLevel(inventoryId) {
+      if (!isManager()) {
+        window.CarCareUI.toast("Only a manager can edit reorder levels.", "error");
+        return;
+      }
+      const input = document.querySelector("[data-reorder-level=\"" + CSS.escape(inventoryId) + "\"]");
+      const value = Number(input && input.value);
+      if (!Number.isInteger(value) || value < 0) {
+        window.CarCareUI.toast("Reorder level must be a whole number zero or greater.", "error");
+        return;
+      }
+      const inventory = getData("inventory");
+      const target = inventory.find((item) => item.id === inventoryId && item.serviceCenterId === centerId);
+      if (!target) {
+        window.CarCareUI.toast("Inventory item not found for this center.", "error");
+        return;
+      }
+      const previous = Number(target.reorderLevel || 0);
+      target.reorderLevel = value;
+      saveData("inventory", inventory);
+      const activity = inventoryActivityEntry(target, 0, 0, "Reorder level changed from " + previous + " to " + value, "");
+      saveData("inventoryActivity", getData("inventoryActivity").concat(activity));
+      renderInventory();
+      window.CarCareUI.toast("Reorder level updated.", "success");
+    }
+
     function partEditRow(part) {
       return "<div class=\"center-part-edit-row\" data-part-row>" +
         "<input type=\"hidden\" name=\"partId\" value=\"" + escape(part ? part.id : "") + "\">" +
@@ -534,6 +808,9 @@
       const selectedItems = selectedEstimateItems(request);
       const items = Array.from(form.querySelectorAll("[data-completion-part]"));
       if (items.length !== selectedItems.length || !items.length) throw new Error("Part completion details are missing.");
+      if (reservationsFor(request).some((reservation) => reservation.status !== "reserved")) {
+        throw new Error("A confirmed part is still out of stock. Receive its shipment before completing service.");
+      }
       const partCollection = getData("parts");
       const changedNames = [];
       items.forEach((fieldset) => {
@@ -571,9 +848,23 @@
         paymentStatus: "Due",
         serviceRequestId: request.id
       };
+      const inventory = getData("inventory");
+      const activities = [];
+      reservationsFor(request).filter((reservation) => reservation.status === "reserved").forEach((reservation) => {
+        const item = inventory.find((entry) => entry.id === reservation.inventoryId && entry.serviceCenterId === centerId);
+        if (!item) throw new Error("Reserved inventory for " + reservation.partName + " could not be found.");
+        const quantity = Number(reservation.quantity || 1);
+        if (Number(item.quantity || 0) < quantity || Number(item.quantityReserved || 0) < quantity) {
+          throw new Error("Inventory for " + reservation.partName + " changed before completion. Review stock and reservations.");
+        }
+        item.quantity -= quantity;
+        item.quantityReserved -= quantity;
+        activities.push(inventoryActivityEntry(item, -quantity, -quantity, "Used for completed service", request.orderNumber));
+      });
+      if (activities.length) saveInventoryChanges(inventory, activities);
       saveData("parts", partCollection);
       saveData("serviceHistory", serviceHistory.concat(historyRecord));
-      const updated = writeRequest(requestId, { status: "completed", serviceHistoryId: historyId, serviceCompletedAt: new Date().toISOString(), serviceCost: historyRecord.cost, paymentStatus: "due" });
+      const updated = writeRequest(requestId, { status: "completed", inventoryConsumedAt: new Date().toISOString(), serviceHistoryId: historyId, serviceCompletedAt: new Date().toISOString(), serviceCost: historyRecord.cost, paymentStatus: "due" });
       notifyOwner(updated.ownerId, updated, "service-completed", "Your service is complete. Payment of $" + historyRecord.cost.toFixed(2) + " is due.");
       renderDashboard();
       renderRequestDetail(requestId);
@@ -581,12 +872,16 @@
     }
 
     document.querySelectorAll("[data-center-tab]").forEach((button) => button.addEventListener("click", () => openTab(button.dataset.centerTab)));
-    document.querySelectorAll("[data-open-tab]").forEach((button) => button.addEventListener("click", () => openTab(button.dataset.openTab)));
     document.getElementById("center-followups").addEventListener("click", (event) => {
       const button = event.target.closest("[data-send-request]");
       if (button) createCenterRequest(button.dataset.sendRequest);
     });
     document.addEventListener("click", (event) => {
+      const tabButton = event.target.closest("[data-open-tab]");
+      if (tabButton) {
+        openTab(tabButton.dataset.openTab);
+        return;
+      }
       const open = event.target.closest("[data-open-request]");
       if (open) {
         openTab("requests");
@@ -612,6 +907,14 @@
       const startService = event.target.closest("[data-start-service]");
       if (startService) {
         try {
+          syncConfirmedReservations(false);
+          const request = requestsForCenter().find((item) => item.id === startService.dataset.startService);
+          if (!request || reservationShortages(request).length) {
+            renderRequests();
+            renderRequestDetail(startService.dataset.startService);
+            window.CarCareUI.toast("Parts are not available yet. Schedule and receive a shipment before starting service.", "error");
+            return;
+          }
           const updated = writeRequest(startService.dataset.startService, { status: "in-service", serviceStartedAt: new Date().toISOString() });
           notifyOwner(updated.ownerId, updated, "service-started", "The service center has started work on the parts you confirmed.");
           renderRequests();
@@ -620,7 +923,15 @@
         } catch (error) {
           window.CarCareUI.toast(error.message, "error");
         }
+        return;
       }
+      const shipmentStatus = event.target.closest("[data-shipment-status]");
+      if (shipmentStatus) {
+        updateShipmentStatus(shipmentStatus.dataset.shipmentStatus, shipmentStatus.dataset.nextStatus);
+        return;
+      }
+      const reorder = event.target.closest("[data-save-reorder]");
+      if (reorder) updateReorderLevel(reorder.dataset.saveReorder);
     });
     document.addEventListener("submit", (event) => {
       const completionFormElement = event.target.closest("[data-complete-form]");
@@ -662,6 +973,12 @@
       if (searchForm) {
         event.preventDefault();
         searchVehicles(searchForm.elements.vehicleNumber.value);
+        return;
+      }
+      const shipmentForm = event.target.closest("#shipment-form");
+      if (shipmentForm) {
+        event.preventDefault();
+        createShipment(shipmentForm);
         return;
       }
       const estimateForm = event.target.closest("[data-estimate-form]");

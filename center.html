@@ -24,6 +24,8 @@
       <button type="button" class="active" data-center-tab="dashboard">Dashboard</button>
       <button type="button" data-center-tab="requests">Service Requests <span id="request-nav-count">0</span></button>
       <button type="button" data-center-tab="vehicles">Vehicle Information</button>
+      <button type="button" data-center-tab="inventory">Inventory</button>
+      <button type="button" data-center-tab="shipments">Part Shipments</button>
     </nav>
     <section class="center-view" id="center-dashboard" data-center-view="dashboard">
       <div class="center-summary-grid" id="request-status-counts"></div>
@@ -47,6 +49,27 @@
       <div class="center-section-heading"><div><p class="eyebrow">VEHICLE INFORMATION SYSTEM</p><h2>Vehicle Information</h2><p>Search a vehicle by its vehicle number to review or update part records and service history.</p></div></div>
       <form id="vehicle-search-form" class="center-search"><label for="vehicle-search-input">Vehicle number</label><input id="vehicle-search-input" name="vehicleNumber" placeholder="e.g. CC-4821" required><button class="button button-primary" type="submit">Search vehicles</button></form>
       <div id="vehicle-search-results"></div>
+    </section>
+    <section class="center-view hidden" id="center-inventory-view" data-center-view="inventory">
+      <div class="center-section-heading"><div><p class="eyebrow">WAREHOUSE · SR-01</p><h2>Inventory</h2><p>Part stock, reservations, reorder thresholds, and activity for this service center only.</p></div></div>
+      <section class="center-panel">
+        <div class="center-table-wrap"><table class="center-table"><thead><tr><th>Part name</th><th>SKU</th><th>Compatible makes</th><th>On hand</th><th>Reserved</th><th>Reorder level</th><th>Unit price</th><th>Status</th></tr></thead><tbody id="center-inventory-table"></tbody></table></div>
+        <div class="center-inventory-actions" id="center-inventory-actions"></div>
+      </section>
+      <section class="center-panel">
+        <div class="center-panel-heading"><div><h2>Inventory activity</h2><p>Reservations, consumption, receipts, and approved reorder updates.</p></div></div>
+        <div class="center-table-wrap"><table class="center-table"><thead><tr><th>Date</th><th>Part</th><th>Change</th><th>Reason</th><th>Order</th></tr></thead><tbody id="center-inventory-activity"></tbody></table></div>
+      </section>
+    </section>
+    <section class="center-view hidden" id="center-shipments" data-center-view="shipments">
+      <div class="center-section-heading"><div><p class="eyebrow">WAREHOUSE RESTOCKING</p><h2>Part Shipments</h2><p>Track planned deliveries and restock inventory when shipments arrive.</p></div></div>
+      <section class="center-panel">
+        <div class="center-panel-heading"><div><h2 id="shipment-form-heading">Schedule Shipment</h2><p id="shipment-form-help">Shipment changes are tracked in the inventory activity log.</p></div><span class="center-role-tag" id="shipment-role-label"></span></div>
+        <form id="shipment-form" class="center-shipment-form"></form>
+      </section>
+      <section class="center-panel">
+        <div class="center-table-wrap"><table class="center-table"><thead><tr><th>Part</th><th>Quantity</th><th>Supplier</th><th>Expected delivery</th><th>Status</th><th>Action</th></tr></thead><tbody id="center-shipments-table"></tbody></table></div>
+      </section>
     </section>
     <p class="prototype-note">This prototype stores demo data in this browser. Customer contact and service notifications are simulated.</p>
   </main>
