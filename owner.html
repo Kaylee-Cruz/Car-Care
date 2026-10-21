@@ -3,30 +3,125 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Car Owner | Car Care</title>
+  <title>Owner Dashboard | Car Care</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
-<body class="portal-page" data-required-role="owner">
-  <header class="site-header">
+<body class="portal-page owner-portal" data-required-role="owner">
+  <header class="site-header owner-header">
     <a class="brand" href="index.html"><span class="brand-mark">C</span> Car Care</a>
     <nav class="header-actions" aria-label="Main navigation">
       <a class="text-link" href="index.html">Home</a>
-      <a class="text-link" href="center.html">Service Center</a>
-      <a class="text-link" href="admin.html">Admin</a>
+      <button class="owner-notification-shortcut" type="button" data-owner-tab="notifications" aria-label="Open notifications">
+        <span aria-hidden="true">♧</span><span>Notifications</span><span id="header-unread-count" class="notification-count">0</span>
+      </button>
       <span class="user-greeting" id="user-greeting"></span>
       <button class="button button-quiet" type="button" data-logout>Logout</button>
-      <a class="button button-quiet" href="login.html">Login</a>
-      <a class="button button-primary" href="register.html">Register</a>
     </nav>
   </header>
-  <main class="placeholder-page">
-    <p class="eyebrow">CAR OWNER PORTAL</p>
-    <h1>Coming soon</h1>
-    <p>The Car Owner portal is being prepared. Vehicle details, part reminders, and service updates will be available here.</p>
-    <a class="button button-primary" href="index.html">Back to home</a>
-  </main>
+  <div class="owner-layout">
+    <aside class="owner-sidebar" aria-label="Owner portal navigation">
+      <p class="owner-nav-label">MY CAR CARE</p>
+      <button class="owner-nav-link active" type="button" data-owner-tab="dashboard"><span>⌂</span> Dashboard</button>
+      <button class="owner-nav-link" type="button" data-owner-tab="vehicles"><span>▣</span> My Vehicles</button>
+      <button class="owner-nav-link" type="button" data-owner-tab="notifications"><span>♧</span> Notifications <span id="nav-unread-count" class="notification-count">0</span></button>
+      <button class="owner-nav-link" type="button" data-owner-tab="history"><span>◷</span> Service History</button>
+      <button class="owner-nav-link" type="button" data-owner-tab="profile"><span>♙</span> My Profile</button>
+      <div class="owner-sidebar-foot"><span class="status-dot"></span> Private owner workspace</div>
+    </aside>
+
+    <main class="owner-main">
+      <section class="owner-view active" id="owner-dashboard" data-owner-view="dashboard">
+        <div class="owner-page-heading">
+          <div><p class="eyebrow">YOUR GARAGE</p><h1>Welcome, <span id="owner-welcome-name">there</span><span class="heading-period">.</span></h1><p>Your vehicles and maintenance at a glance.</p></div>
+          <button class="button button-primary" type="button" data-owner-tab="vehicles">＋ Add vehicle</button>
+        </div>
+        <div id="reminder-banner" class="owner-reminder-banner hidden" role="status">
+          <span class="reminder-banner-icon" aria-hidden="true">!</span>
+          <div><strong id="reminder-banner-title">Your vehicle needs attention</strong><p id="reminder-banner-text"></p></div>
+          <button type="button" class="banner-action" data-owner-tab="vehicles">Review vehicles →</button>
+        </div>
+        <div class="owner-summary-grid">
+          <article class="owner-summary-card"><span class="summary-label">MY VEHICLES</span><strong id="owner-vehicle-count">0</strong><small>Registered to you</small></article>
+          <article class="owner-summary-card"><span class="summary-label">ACTIVE SERVICE REQUESTS</span><strong id="owner-request-count">0</strong><small>In progress</small></article>
+          <article class="owner-summary-card"><span class="summary-label">UNREAD NOTIFICATIONS</span><strong id="owner-unread-total">0</strong><small>Service and part updates</small></article>
+        </div>
+        <section class="owner-panel">
+          <div class="owner-panel-heading"><div><h2>My vehicles</h2><p>Select a vehicle to see its part status.</p></div><button class="button button-outline button-small" type="button" data-owner-tab="vehicles">View vehicles</button></div>
+          <div class="owner-vehicle-grid" id="dashboard-vehicles"></div>
+        </section>
+        <section class="owner-panel">
+          <div class="owner-panel-heading"><div><h2>Recent updates</h2><p>Notifications generated from your account activity.</p></div><button class="text-link" type="button" data-owner-tab="notifications">View notifications</button></div>
+          <div id="dashboard-notifications" class="owner-notification-list"></div>
+        </section>
+      </section>
+
+      <section class="owner-view" id="owner-vehicles" data-owner-view="vehicles" hidden>
+        <div class="owner-page-heading">
+          <div><p class="eyebrow">YOUR GARAGE</p><h1>My Vehicles<span class="heading-period">.</span></h1><p>Only your registered vehicles and their part records are shown here.</p></div>
+          <button class="button button-primary" type="button" id="show-add-vehicle">＋ Add vehicle</button>
+        </div>
+        <div id="add-vehicle-panel" class="owner-panel hidden">
+          <div class="owner-panel-heading"><div><h2>Add a vehicle</h2><p>Choose a catalog model, or submit an unlisted vehicle for admin review.</p></div></div>
+          <form id="add-vehicle-form" class="owner-form">
+            <label for="catalog-make">Make</label><select id="catalog-make" name="make" required></select>
+            <div id="catalog-model-fields" class="owner-form-row">
+              <div><label for="catalog-model">Model</label><select id="catalog-model" name="model" required></select></div>
+              <div><label for="catalog-year">Year</label><select id="catalog-year" name="year" required></select></div>
+            </div>
+            <label for="vehicle-number-input">Vehicle number</label><input id="vehicle-number-input" name="vehicleNumber" type="text" placeholder="e.g. CC-4821" required>
+            <label class="owner-check-option"><input id="unlisted-model" name="unlisted" type="checkbox"><span>My vehicle isn’t listed</span></label>
+            <div id="manual-model-fields" class="hidden">
+              <p class="owner-inline-note">Unlisted vehicles are saved as <strong>Pending admin review</strong> and cannot be scheduled for service until approved.</p>
+              <label for="manual-make">Vehicle make</label><input id="manual-make" name="manualMake" type="text" placeholder="Enter make">
+              <label for="manual-model">Vehicle model</label><input id="manual-model" name="manualModel" type="text" placeholder="Enter model">
+              <label for="manual-year">Vehicle year</label><input id="manual-year" name="manualYear" type="number" min="1900" max="2100" placeholder="e.g. 2024">
+            </div>
+            <div class="form-message" id="add-vehicle-message" role="status" aria-live="polite"></div>
+            <div class="owner-form-actions"><button class="button button-primary" type="submit">Save vehicle</button><button class="button button-quiet" id="cancel-add-vehicle" type="button">Cancel</button></div>
+          </form>
+        </div>
+        <div class="owner-vehicle-grid" id="owner-vehicles-list"></div>
+        <section class="owner-panel hidden" id="vehicle-details-panel">
+          <div class="owner-panel-heading"><div><p class="eyebrow">VEHICLE DETAILS</p><h2 id="selected-vehicle-title">Part status</h2><p id="selected-vehicle-meta"></p></div><button class="button button-quiet button-small" id="close-vehicle-details" type="button">Close</button></div>
+          <div id="pending-review-notice" class="owner-inline-note hidden">This vehicle is pending admin review. It cannot be scheduled for service until an administrator approves the model.</div>
+          <div id="vehicle-parts-content">
+            <div class="owner-table-wrap"><table class="owner-table"><thead><tr><th>Part</th><th>Installed</th><th>Expiry date</th><th>Days remaining</th><th>Status</th></tr></thead><tbody id="selected-vehicle-parts"></tbody></table></div>
+            <div id="no-parts-message" class="owner-empty-state hidden">No part information has been recorded for this vehicle yet.</div>
+          </div>
+        </section>
+      </section>
+
+      <section class="owner-view" id="owner-notifications" data-owner-view="notifications" hidden>
+        <div class="owner-page-heading"><div><p class="eyebrow">STAY UP TO DATE</p><h1>Notifications<span class="heading-period">.</span></h1><p>Service and vehicle reminders for your account.</p></div><button class="button button-outline" id="mark-all-read" type="button">Mark all as read</button></div>
+        <div class="owner-panel"><div id="all-notifications" class="owner-notification-list"></div></div>
+        <p class="prototype-note">Email and SMS delivery are simulated. Notifications appear only in this prototype.</p>
+      </section>
+
+      <section class="owner-view" id="owner-history" data-owner-view="history" hidden>
+        <div class="owner-page-heading"><div><p class="eyebrow">YOUR MAINTENANCE RECORD</p><h1>Service History<span class="heading-period">.</span></h1><p>Past completed services for your vehicles.</p></div></div>
+        <div class="owner-panel"><div id="owner-service-history" class="owner-history-list"></div></div>
+      </section>
+
+      <section class="owner-view" id="owner-profile" data-owner-view="profile" hidden>
+        <div class="owner-page-heading"><div><p class="eyebrow">ACCOUNT DETAILS</p><h1>My Profile<span class="heading-period">.</span></h1><p>Your personal information is kept within your owner account.</p></div></div>
+        <div class="owner-panel profile-panel">
+          <div class="owner-panel-heading"><div><h2>Contact information</h2><p>Your registered account details.</p></div></div>
+          <dl class="owner-profile-grid">
+            <div><dt>Name</dt><dd id="profile-name">—</dd></div>
+            <div><dt>Email</dt><dd id="profile-email">—</dd></div>
+            <div><dt>Phone</dt><dd id="profile-phone">—</dd></div>
+            <div><dt>Address</dt><dd id="profile-address">—</dd></div>
+            <div><dt>SSN</dt><dd id="profile-ssn">***-**-****</dd></div>
+          </dl>
+          <p class="prototype-note">SSN is shown masked. Service-center users cannot access this information.</p>
+        </div>
+      </section>
+      <div class="owner-page-error hidden" id="owner-page-error" role="alert"></div>
+    </main>
+  </div>
   <script src="js/data.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/auth.js"></script>
+  <script src="js/owner.js"></script>
 </body>
 </html>

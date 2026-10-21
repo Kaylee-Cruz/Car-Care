@@ -16,8 +16,8 @@
 
   function createSeed() {
     const users = [
-      { id: "owner-1", name: "Alex Morgan", ownerName: "Alex Morgan", email: "owner@carcare.demo", password: "demo123", role: "owner", ssn: "123-45-6789" },
-      { id: "owner-2", name: "Taylor Brooks", ownerName: "Taylor Brooks", email: "owner2@carcare.demo", password: "demo123", role: "owner", ssn: "987-65-4321" },
+      { id: "owner-1", name: "Alex Morgan", ownerName: "Alex Morgan", email: "owner@carcare.demo", password: "demo123", phone: "555-0142", address: "18 Maple Street", role: "owner", ssn: "123-45-6789" },
+      { id: "owner-2", name: "Taylor Brooks", ownerName: "Taylor Brooks", email: "owner2@carcare.demo", password: "demo123", phone: "555-0198", address: "420 Lakeview Drive", role: "owner", ssn: "987-65-4321" },
       { id: "center-manager-1", name: "Sam Rivera", email: "manager@carcare.demo", password: "demo123", role: "manager", serviceCenterId: "center-1", serviceCenterName: "Greenline Auto Care", serviceCenterAddress: "1840 Cedar Avenue" },
       { id: "center-tech-1", name: "Casey Nguyen", email: "technician@carcare.demo", password: "demo123", role: "technician", serviceCenterId: "center-1", serviceCenterName: "Greenline Auto Care", serviceCenterAddress: "1840 Cedar Avenue" },
       { id: "center-manager-2", name: "Morgan Patel", email: "center2@carcare.demo", password: "demo123", role: "manager", serviceCenterId: "center-2", serviceCenterName: "Northside Motor Works", serviceCenterAddress: "72 North Market Street" },
@@ -139,6 +139,16 @@
           let changed = false;
           data.users = data.users.map((user) => {
             const migratedUser = Object.assign({}, user);
+            if (migratedUser.id === "owner-1" && (!migratedUser.phone || !migratedUser.address)) {
+              migratedUser.phone = migratedUser.phone || "555-0142";
+              migratedUser.address = migratedUser.address || "18 Maple Street";
+              changed = true;
+            }
+            if (migratedUser.id === "owner-2" && (!migratedUser.phone || !migratedUser.address)) {
+              migratedUser.phone = migratedUser.phone || "555-0198";
+              migratedUser.address = migratedUser.address || "420 Lakeview Drive";
+              changed = true;
+            }
             if (typeof migratedUser.disabled !== "boolean") {
               migratedUser.disabled = false;
               changed = true;
@@ -203,6 +213,14 @@
     resetDemoData,
     findUser(email) {
       return state.users.find((user) => user.email.toLowerCase() === email.toLowerCase());
+    },
+    getOwnerProfile(ownerId) {
+      const user = state.users.find((account) => account.id === ownerId && account.role === "owner");
+      return user ? clone(user) : null;
+    },
+    getServiceCenterName(serviceCenterId) {
+      const user = state.users.find((account) => account.serviceCenterId === serviceCenterId);
+      return user ? user.serviceCenterName || user.name : null;
     },
     addUser(user) {
       if (state.users.some((existingUser) => existingUser.email.toLowerCase() === user.email.toLowerCase())) {
