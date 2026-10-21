@@ -40,13 +40,14 @@
     vehicleModels: ["Honda Civic", "Toyota Corolla", "Ford Escape", "Hyundai Elantra"],
     reports: []
   };
+  const copySeed = () => JSON.parse(JSON.stringify(seed));
 
   function readStore() {
     try {
       const stored = window.localStorage.getItem(STORAGE_KEY);
       if (!stored) {
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
-        return structuredClone(seed);
+        return copySeed();
       }
       const data = JSON.parse(stored);
       if (!data || !Array.isArray(data.users) || !Array.isArray(data.vehicles)) {
@@ -55,7 +56,7 @@
       return data;
     } catch (error) {
       console.error("Unable to load Car Care demo data.", error);
-      return structuredClone(seed);
+      return copySeed();
     }
   }
 

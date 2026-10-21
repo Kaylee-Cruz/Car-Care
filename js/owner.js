@@ -4,7 +4,7 @@
   document.addEventListener("DOMContentLoaded", function () {
     const session = window.CarCareAuth.requireRole("owner");
     if (!session) return;
-    const vehicle = window.CarCareData.vehicles.find((item) => item.ownerId === session.id) || window.CarCareData.vehicles[0];
+    const vehicle = window.CarCareData.vehicles.find((item) => item.ownerId === session.id);
     const parts = vehicle ? vehicle.parts : [];
     const history = window.CarCareData.serviceHistory.filter((item) => item.ownerId === session.id);
     document.getElementById("vehicle-summary").textContent = vehicle ? vehicle.year + " " + vehicle.vehicleMake + " " + vehicle.carModel : "No vehicle yet";
