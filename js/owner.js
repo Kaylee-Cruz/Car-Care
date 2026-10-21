@@ -47,7 +47,9 @@
     const existingKeys = new Set(notifications.map((notification) => notification.notificationKey).filter(Boolean));
     const newNotifications = [];
     const addNotification = (key, type, message, relatedId) => {
-      if (existingKeys.has(key)) return;
+      if (existingKeys.has(key) || notifications.some((notification) =>
+        notification.recipientId === session.id && notification.relatedId === relatedId && notification.type === type
+      )) return;
       existingKeys.add(key);
       newNotifications.push({
         id: "notification-" + key,
@@ -480,6 +482,13 @@
       });
       const isIncoming = request.initiatedBy === "center" && request.status === "requested";
       const canCancel = request.initiatedBy !== "center" && ["requested", "accepted-by-owner"].includes(request.status);
+      const estimateItems = Array.isArray(request.estimateItems) ? request.estimateItems : [];
+      const canConfirmEstimate = ["estimate-ready", "estimate-sent"].includes(request.status) && estimateItems.length > 0;
+      const estimateMarkup = canConfirmEstimate
+        ? "<form class=\"owner-estimate-confirmation\" data-estimate-confirm=\"" + escape(request.id) + "\"><h3>Service estimate</h3><p>Select the parts you approve for service. The total updates with your selection.</p><div class=\"owner-estimate-options\">" +
+          estimateItems.map((item) => "<label class=\"owner-estimate-option\"><input type=\"checkbox\" name=\"approvedEstimateItem\" value=\"" + escape(item.id) + "\"><span><strong>" + escape(item.partName) + "</strong><small>Part $" + Number(item.partCost || 0).toFixed(2) + " · Labor $" + Number(item.laborCost || 0).toFixed(2) + "</small></span><b>$" + (Number(item.partCost || 0) + Number(item.laborCost || 0)).toFixed(2) + "</b></label>").join("") +
+          "</div><p class=\"owner-estimate-total\">Selected estimate total <strong data-owner-estimate-total>$0.00</strong></p><div class=\"form-message\" data-estimate-message role=\"status\"></div><button class=\"button button-primary button-small\" type=\"submit\">Confirm selected parts</button></form>"
+        : "";
       const pickupInfo = request.pickupDate && request.pickupTime
         ? "<p class=\"request-pickup-info\"><strong>Pickup:</strong> " + window.CarCareUI.formatDate(request.pickupDate) + " at " + escape(formatPickupTime(request.pickupTime)) + (request.pickupAddress ? " · " + escape(request.pickupAddress) : "") + "</p>"
         : "";
@@ -489,6 +498,7 @@
         " · " + escape(centerName) + "</p></div><span class=\"table-status " + (["declined", "cancelled"].includes(request.status) ? "expired" : request.status === "paid" ? "ok" : "due") + "\">" + serviceRequestStatusLabel(request.status) + "</span></div>" +
         (requestedParts.length ? "<p class=\"request-parts-summary\"><strong>Requested checks:</strong> " + escape(requestedParts.join(", ")) + "</p>" : "") +
         (request.issue ? "<p class=\"request-parts-summary\"><strong>Notes:</strong> " + escape(request.issue) + "</p>" : "") + pickupInfo +
+        estimateMarkup +
         requestProgressMarkup(request) +
         (isIncoming ? "<div class=\"incoming-request-actions\"><button class=\"button button-primary button-small\" type=\"button\" data-accept-request=\"" + escape(request.id) + "\">Accept and choose pickup</button><button class=\"button button-outline button-small\" type=\"button\" data-decline-request=\"" + escape(request.id) + "\">Decline</button></div>" : "") +
         (canCancel ? "<div class=\"request-cancel-action\"><button class=\"link-button\" type=\"button\" data-cancel-request=\"" + escape(request.id) + "\">Cancel request</button></div>" : "") +
@@ -677,7 +687,19 @@
   }
 
   function initRequestActions() {
-    document.getElementById("owner-request-list").addEventListener("click", function (event) {
+    const requestList = document.getElementById("owner-request-list");
+    requestList.addEventListener("change", function (event) {
+      const form = event.target.closest("[data-estimate-confirm]");
+      if (!form) return;
+      const selected = new Set(Array.from(form.querySelectorAll("input[name=\"approvedEstimateItem\"]:checked")).map((input) => input.value));
+      const requests = window.CarCareData.get("serviceRequests");
+      const request = requests.find((item) => item.id === form.dataset.estimateConfirm && item.ownerId === session.id);
+      const total = request && Array.isArray(request.estimateItems)
+        ? request.estimateItems.filter((item) => selected.has(item.id)).reduce((sum, item) => sum + Number(item.partCost || 0) + Number(item.laborCost || 0), 0)
+        : 0;
+      form.querySelector("[data-owner-estimate-total]").textContent = "$" + total.toFixed(2);
+    });
+    requestList.addEventListener("click", function (event) {
       const acceptButton = event.target.closest("[data-accept-request]");
       if (acceptButton) {
         const form = this.querySelector("[data-accept-form=\"" + CSS.escape(acceptButton.dataset.acceptRequest) + "\"]");
@@ -698,6 +720,30 @@
       if (cancelButton) cancelOwnerRequest(cancelButton.dataset.cancelRequest);
     });
     document.getElementById("owner-request-list").addEventListener("submit", function (event) {
+      const estimateForm = event.target.closest("[data-estimate-confirm]");
+      if (estimateForm) {
+        event.preventDefault();
+        const selectedPartsForService = Array.from(estimateForm.querySelectorAll("input[name=\"approvedEstimateItem\"]:checked")).map((input) => input.value);
+        const message = estimateForm.querySelector("[data-estimate-message]");
+        if (!selectedPartsForService.length) {
+          message.textContent = "Select at least one part to confirm.";
+          return;
+        }
+        try {
+          const request = updateRequest(estimateForm.dataset.estimateConfirm, {
+            status: "parts-confirmed",
+            selectedPartsForService,
+            ownerConfirmedAt: new Date().toISOString()
+          });
+          notifyServiceCenter(request.serviceCenterId, request, (session.ownerName || session.name) + " confirmed " + selectedPartsForService.length + " estimate item(s) for " + request.orderNumber + ".", "owner-response");
+          renderServiceRequests();
+          refreshNotificationViews();
+          window.CarCareUI.toast("Selected parts confirmed. The service center can now start work.", "success");
+        } catch (error) {
+          message.textContent = error.message;
+        }
+        return;
+      }
       const form = event.target.closest("[data-accept-form]");
       if (!form) return;
       event.preventDefault();

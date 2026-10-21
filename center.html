@@ -6,27 +6,53 @@
   <title>Service Center | Car Care</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
-<body class="portal-page" data-required-role="center">
-  <header class="site-header">
+<body class="portal-page center-portal" data-required-role="center">
+  <header class="site-header center-header">
     <a class="brand" href="index.html"><span class="brand-mark">C</span> Car Care</a>
     <nav class="header-actions" aria-label="Main navigation">
       <a class="text-link" href="index.html">Home</a>
-      <a class="text-link" href="owner.html">Car Owner</a>
-      <a class="text-link" href="admin.html">Admin</a>
       <span class="user-greeting" id="user-greeting"></span>
       <button class="button button-quiet" type="button" data-logout>Logout</button>
-      <a class="button button-quiet" href="login.html">Login</a>
-      <a class="button button-primary" href="register.html">Register</a>
     </nav>
   </header>
-  <main class="placeholder-page">
-    <p class="eyebrow">SERVICE CENTER PORTAL</p>
-    <h1>Coming soon</h1>
-    <p>The Service Center portal is being prepared. Customer reminders, inventory, and service requests will be available here.</p>
-    <a class="button button-primary" href="index.html">Back to home</a>
+  <main class="center-main">
+    <div class="center-heading">
+      <div><p class="eyebrow">SERVICE CENTER PORTAL</p><h1 id="center-title">Welcome back.</h1><p>Customer follow-up, service requests, and vehicle records.</p></div>
+      <span class="center-role-tag" id="center-role"></span>
+    </div>
+    <nav class="center-tabs" aria-label="Service center sections">
+      <button type="button" class="active" data-center-tab="dashboard">Dashboard</button>
+      <button type="button" data-center-tab="requests">Service Requests <span id="request-nav-count">0</span></button>
+      <button type="button" data-center-tab="vehicles">Vehicle Information</button>
+    </nav>
+    <section class="center-view" id="center-dashboard" data-center-view="dashboard">
+      <div class="center-summary-grid" id="request-status-counts"></div>
+      <section class="center-panel">
+        <div class="center-panel-heading"><div><p class="eyebrow">FR-05 · CUSTOMER FOLLOW-UP</p><h2>Customers needing service</h2><p>Vehicles are sorted by expired-part urgency. Customer details never include sensitive identity data.</p></div><span class="center-count" id="follow-up-count">0</span></div>
+        <div id="center-followups" class="center-followups"></div>
+      </section>
+      <section class="center-panel">
+        <div class="center-panel-heading"><div><h2>Recent service requests</h2><p>Track requests assigned to this service center.</p></div><button class="button button-outline button-small" type="button" data-open-tab="requests">View all</button></div>
+        <div class="center-table-wrap"><table class="center-table"><thead><tr><th>Order</th><th>Customer</th><th>Vehicle</th><th>Status</th><th></th></tr></thead><tbody id="dashboard-requests"></tbody></table></div>
+      </section>
+    </section>
+    <section class="center-view hidden" id="center-requests" data-center-view="requests">
+      <div class="center-section-heading"><div><p class="eyebrow">CUSTOMER WORKFLOW</p><h2>Service Requests</h2><p>Open a request to review the customer and continue its current stage.</p></div></div>
+      <section class="center-panel">
+        <div class="center-table-wrap"><table class="center-table"><thead><tr><th>Order</th><th>Customer</th><th>Vehicle</th><th>Requested pickup</th><th>Status</th><th></th></tr></thead><tbody id="center-requests-table"></tbody></table></div>
+      </section>
+      <section class="center-panel hidden" id="request-detail-panel"></section>
+    </section>
+    <section class="center-view hidden" id="center-vehicles" data-center-view="vehicles">
+      <div class="center-section-heading"><div><p class="eyebrow">VEHICLE INFORMATION SYSTEM</p><h2>Vehicle Information</h2><p>Search a vehicle by its vehicle number to review or update part records and service history.</p></div></div>
+      <form id="vehicle-search-form" class="center-search"><label for="vehicle-search-input">Vehicle number</label><input id="vehicle-search-input" name="vehicleNumber" placeholder="e.g. CC-4821" required><button class="button button-primary" type="submit">Search vehicles</button></form>
+      <div id="vehicle-search-results"></div>
+    </section>
+    <p class="prototype-note">This prototype stores demo data in this browser. Customer contact and service notifications are simulated.</p>
   </main>
   <script src="js/data.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/auth.js"></script>
+  <script src="js/center.js"></script>
 </body>
 </html>
